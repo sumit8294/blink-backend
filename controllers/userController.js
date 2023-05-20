@@ -1,0 +1,69 @@
+const User = require('../models/User')
+const bcrypt = require('bcrypt')
+
+const createUser = async (req,res) =>{
+	const {name,email,password} = req.body;
+
+	if (!name || !email || !password) {
+        return res.status(400).json({ message: 'All fields are required' });
+    }
+
+    const duplicate = await User.findOne({ name }).collation({ locale: 'en', strength: 2 }).lean().exec();
+
+    if (duplicate) {
+        return res.status(409).json({ message: 'Duplicate username' });
+    }
+
+    const hashedPwd = await bcrypt.hash(password, 10);
+
+	const userObject = {name,email,"password":hashedPwd};
+
+
+	const result = await User.create(userObject);
+
+	if(result){
+		return res.status(201).json({message: `User ${name} Created`});
+	}
+
+	return res.status(400).json({message: 'Invalid user data received'});
+	
+}
+
+const updateUser = async (req,res) =>{
+	res.send({message:"not Added update yet"})
+}
+
+const getAllUsers = async (req,res) =>{
+	
+	const users = await User.find().select('-password').lean();
+
+	if (!users?.length) {
+        return res.status(400).json({ message: 'No users found' })
+    }
+
+    res.json(users);
+}
+
+const getUser = async (req,res) =>{
+	
+	const user = await User.findOne({_id:req.params}).lean();
+
+	if(!users) {
+		return res.status(400).json({message: 'User not found'});
+	}
+
+	res.json(users);
+}
+
+
+const deleteUser = async (req,res) =>{
+	res.send({message:"not Added delete yet"})
+}
+
+module.exports = {
+	createUser,
+	updateUser,
+	getUser,
+	getAllUsers,
+	deleteUser
+};
