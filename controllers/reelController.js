@@ -5,11 +5,11 @@ const createReel = () => {
 
 }
 
-const delete = () => {
+const deleteReel = () => {
 
 }
 
-const update = () => {
+const updateReel = () => {
 
 }
 
@@ -19,7 +19,7 @@ const getReels = () => {
 
 module.exports = {
 	createReel,
-	delete,
-	update,
+	deleteReel,
+	updateReel,
 	getReels,
 }

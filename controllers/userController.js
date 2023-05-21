@@ -2,27 +2,32 @@ const User = require('../models/User')
 const bcrypt = require('bcrypt')
 
 const createUser = async (req,res) =>{
-	const {name,email,password} = req.body;
 
-	if (!name || !email || !password) {
+	const {username,email,password} = req.body;
+
+	if (!username || !email || !password) {
         return res.status(400).json({ message: 'All fields are required' });
     }
 
-    const duplicate = await User.findOne({ name }).collation({ locale: 'en', strength: 2 }).lean().exec();
+    const usernameExists = await User.findOne({ username }).collation({ locale: 'en', strength: 2 }).lean().exec();
+    const emailExists = await User.findOne({ email }).collation({ locale: 'en', strength: 2 }).lean().exec();
 
-    if (duplicate) {
-        return res.status(409).json({ message: 'Duplicate username' });
+    if (emailExists) {
+        return res.status(409).json({ message: 'Email already exists !' });
+    }
+    else if(usernameExists){
+        return res.status(409).json({ message: 'Username already exists !' });
     }
 
     const hashedPwd = await bcrypt.hash(password, 10);
 
-	const userObject = {name,email,"password":hashedPwd};
+	const userObject = {username,email,"password":hashedPwd};
 
 
 	const result = await User.create(userObject);
 
 	if(result){
-		return res.status(201).json({message: `User ${name} Created`});
+		return res.status(201).json({message: `User ${username} Created`});
 	}
 
 	return res.status(400).json({message: 'Invalid user data received'});

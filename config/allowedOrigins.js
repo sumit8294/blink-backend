@@ -1,5 +1,5 @@
 const allowedOrigins = [
-    'http://locahost:3000'
+   	'http://localhost:3000',
 ]
 
 module.exports = allowedOrigins

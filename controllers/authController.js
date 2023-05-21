@@ -4,19 +4,22 @@ const bcrypt = require('bcrypt')
 
 const login = async (req,res) =>{
 
-	const {name,password} = req.body;
+	const {usernameOrEmail,password} = req.body;
 
-	if(!name || !password) {
+	if(!usernameOrEmail || !password) {
 		return res.status(400).json({message:'All fields are require'})
 	}
 
-	const user = await User.findOne({name}).exec();
+    const user = await User.findOne({username:usernameOrEmail}).exec() || await User.findOne({email:usernameOrEmail}).exec();
 
 	if(!user){
 		return res.status(401).json({message:'User not found'})
 	}
 
-	const match = bcrypt.compare(password,user.password);
+	const match = await bcrypt.compare(password,user.password);
+    console.log(match, password, user.password);
+
+
 
 	if(!match){
 		return res.status(401).json({message:'Wrong password'})
@@ -25,7 +28,7 @@ const login = async (req,res) =>{
 	const accessToken = jwt.sign(
         {
             "UserInfo": {
-                "name": user.name,
+                "username": user.username,
                 "appSettings": user.appSettings,
                 "bio":user.bio,
             }
@@ -35,7 +38,7 @@ const login = async (req,res) =>{
     )
 
     const refreshToken = jwt.sign(
-        { "name": user.name },
+        { "username": user.username },
         process.env.REFRESH_TOKEN_SECRET,
         { expiresIn: '7d' }
     )
@@ -49,7 +52,7 @@ const login = async (req,res) =>{
     })
 
 
-	res.json({ accessToken })
+	res.json({ accessToken, message:"Logged In Successfully!!" })
 }
 
 
@@ -66,14 +69,14 @@ const refresh = (req, res) => {
         async (err, decoded) => {
             if (err) return res.status(403).json({ message: 'Forbidden' })
 
-            const user = await User.findOne({ name: decoded.name }).exec()
+            const user = await User.findOne({ username: decoded.username }).exec()
 
             if (!user) return res.status(401).json({ message: 'Unauthorized' })
 
             const accessToken = jwt.sign(
                 {
                     "UserInfo": {
-                        "name": user.name,
+                        "username": user.username,
 		                "appSettings": user.appSettings,
 		                "bio":user.bio,
                     }

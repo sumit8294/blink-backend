@@ -8,16 +8,22 @@ const cookieParser = require('cookie-parser');
 const cors = require('cors');
 const { logger, logEvents } = require('./middleware/logger');
 const errorHandler = require('./middleware/errorHandler');
+const rateLimit = require('express-rate-limit');
 
 const app= express();
 const PORT = 5000;
 
 connectDB();
 
+const limiter = rateLimit({
+  windowMs: 1000, // 1 second
+  max: 3, // 100 requests per windowMs
+});
+app.use(limiter);
 app.use(logger);
 app.use(express.json());
 app.use(cookieParser());
-// app.use(cors(corsOptions))
+app.use(cors(corsOptions))
 
 app.use('/users', require('./routes/users'));
 app.use('/auth', require('./routes/auth'));

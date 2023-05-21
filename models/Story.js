@@ -8,7 +8,7 @@ const storySchema = new mongoose.Schema({
 	},
 	storyUrl:{
 		type:String,
-	}
+	},
 	reaction:{
 		type: Object,
 		default:{
