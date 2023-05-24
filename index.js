@@ -34,8 +34,6 @@ app.use('/posts', require('./routes/posts'));
 app.use('/followers', require('./routes/followers'));
 
 
-
-
 app.all('*', (req, res) => {
     res.status(404)
     if (req.accepts('json')) {
@@ -46,6 +44,8 @@ app.all('*', (req, res) => {
 });
 
 app.use(errorHandler);
+
+
 
 mongoose.connection.once('open', () => {
     console.log('Connected to MongoDB');

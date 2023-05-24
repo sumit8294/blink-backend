@@ -35,7 +35,7 @@ const createUser = async (req,res) =>{
 }
 
 const updateUser = async (req,res) =>{
-	res.send({message:"not Added update yet"})
+	res.send({message:"not Added update function yet"})
 }
 
 const getAllUsers = async (req,res) =>{
@@ -46,23 +46,25 @@ const getAllUsers = async (req,res) =>{
         return res.status(400).json({ message: 'No users found' })
     }
 
-    res.json(users);
+    res.status(200).json(users);
 }
 
 const getUser = async (req,res) =>{
-	
-	const user = await User.findOne({_id:req.params}).lean();
 
-	if(!users) {
+	const {userId} = req.params;
+	
+	const user = await User.findOne({_id:userId}).lean();
+
+	if(!user) {
 		return res.status(400).json({message: 'User not found'});
 	}
 
-	res.json(users);
+	res.status(200).json(user);
 }
 
 
 const deleteUser = async (req,res) =>{
-	res.send({message:"not Added delete yet"})
+	res.send({message:"not Added delete function yet"})
 }
 
 module.exports = {
