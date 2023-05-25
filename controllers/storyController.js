@@ -9,6 +9,10 @@ const getStory = () => {
 
 }
 
+// const getStory = () => {
+
+// }
+
 const deleteStory = () => {
 
 }

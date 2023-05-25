@@ -6,19 +6,24 @@ const storySchema = new mongoose.Schema({
 		type: mongoose.Schema.Types.ObjectId,
 		ref: 'User',
 	},
-	storyUrl:{
-		type:String,
-	},
-	reaction:{
-		type: Object,
-		default:{
-			likes:0,
+	story:[
+		{
+			storyUrl:{
+				type:String
+			},
+			reaction:{
+				type: Object,
+				default:{
+					likes:0,
+				}
+			},
+			createdAt: { 
+				type: Date,
+				default: Date.now 
+			},
 		}
-	},
-	createdAt: { 
-		type: Date,
-		default: Date.now 
-	},
+	],
+	
 });
 
 const Story = mongoose.model('stories',storySchema);

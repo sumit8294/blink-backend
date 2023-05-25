@@ -12,6 +12,10 @@ const chatSchema = new mongoose.Schema({
 		{
 			sender: {type: mongoose.Schema.Types.ObjectId, ref: 'User'},
 			content: {type: String},
+			sendAt: {
+				type: Date,
+				default: Date.now
+			}
 		}
 	],
 	createdAt: { 
