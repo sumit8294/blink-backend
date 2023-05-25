@@ -29,7 +29,7 @@ const getReelByUser = async (req,res) => {
 	
 	const {userId} = req.params;
 
-	const userExists = await Reel.findOne({_id:userId}).lean().exec();
+	const userExists = await User.findOne({_id:userId}).lean().exec();
 
 	if(!userExists){
 		return res.status(401).json({message:'User not found'});
@@ -48,7 +48,7 @@ const userFollowingReels = async (req,res) => {
 
 	const {userId} = req.params;
 
-	const userExists = await Reel.findOne({_id:userId}).lean().exec();
+	const userExists = await User.findOne({_id:userId}).lean().exec();
 
 	if(!userExists){
 		return res.status(401).json({message:'User not found'});
@@ -60,7 +60,7 @@ const userFollowingReels = async (req,res) => {
 
 		const followingId = followers.map(follower => follower.user._id);
 
-		const reels = await Reel.find({users:{$in:followingId}}).exec();
+		const reels = await Reel.find({user:{$in:followingId}}).exec();
 
 		return res.status(200).json(reels);
 

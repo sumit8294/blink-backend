@@ -3,6 +3,7 @@ const casual = require('casual');
 const User = require('../models/User');
 const Post = require('../models/Post');
 const Follower = require('../models/Follower');
+const Reel = require('../models/Reel');
 
 //usage--
 
@@ -18,6 +19,8 @@ const Follower = require('../models/Follower');
   // generateRandoms.generateRandomUsers(10,images,users); 
   // generateRandoms.generateRandomPosts(10,images);
   // generateRandoms.generateRandomFollowers(10);
+  // generateRandoms.generateRandomReels(10,videos);
+
 
 
 const generateRandomUsers = async (count,images,users) => {
@@ -62,7 +65,7 @@ const generateRandomPosts = async (count,images) => {
 
       const post = new Post({
         user: userId,
-        imageUrl: images && images[i] ? images[i] : casual.url,
+        imageUrl: images[i],
         caption: casual.sentence,
         reactions: {
           likes: casual.integer(from = 0, to = 100),
@@ -80,6 +83,41 @@ const generateRandomPosts = async (count,images) => {
     console.log('Random post generation completed.');
   } catch (error) {
     console.error('Error generating random post:', error);
+  } finally {
+    console.log("process over");
+  }
+};
+
+const generateRandomReels = async (count,videos) => {
+  if (count > 10) {
+    console.log("Count should not be more than 10!!");
+    return;
+  }
+  try {
+    for (let i = 0; i < count; i++) {
+      const randomUser = await User.aggregate([{ $sample: { size: 1 } }]);
+      const userId = randomUser[0]._id;
+
+      const reel = new Reel({
+        user: userId,
+        videoUrl: videos[i],
+        title: casual.sentence,
+        reactions: {
+          likes: casual.integer(from = 0, to = 100),
+          comments: casual.integer(from = 0, to = 100),
+          shares: casual.integer(from = 0, to = 100),
+          bookmarks: casual.integer(from = 0, to = 100),
+        },
+        createdAt: casual.date(format = 'YYYY-MM-DD'),
+      });
+
+      await reel.save();
+      console.log(`Reel ${i + 1} saved:`, reel);
+    }
+
+    console.log('Random reels generation completed.');
+  } catch (error) {
+    console.error('Error generating random reels:', error);
   } finally {
     console.log("process over");
   }
@@ -126,4 +164,5 @@ module.exports = {
   generateRandomUsers,
   generateRandomPosts,
   generateRandomFollowers,
+  generateRandomReels
 };

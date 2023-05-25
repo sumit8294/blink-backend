@@ -12,6 +12,15 @@ const reelSchema = new mongoose.Schema({
 	title:{
 		type: String,
 	},
+	reactions:{
+		type: Object,
+		default:{
+			likes: 0,
+			comments: 0,
+			shares: 0,
+			bookmarks: 0
+		}
+	},
 	createdAt: { 
 		type: Date,
 		default: Date.now 
