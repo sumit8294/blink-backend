@@ -28,6 +28,7 @@ const login = async (req,res) =>{
 	const accessToken = jwt.sign(
         {
             "UserInfo": {
+                "userId": user._id,
                 "username": user.username,
                 "appSettings": user.appSettings,
                 "bio":user.bio,
@@ -76,6 +77,7 @@ const refresh = (req, res) => {
             const accessToken = jwt.sign(
                 {
                     "UserInfo": {
+                        "userId": user._id,
                         "username": user.username,
 		                "appSettings": user.appSettings,
 		                "bio":user.bio,
