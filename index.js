@@ -33,6 +33,7 @@ app.use('/stories', require('./routes/stories'));
 app.use('/chats', require('./routes/chats'));
 app.use('/posts', require('./routes/posts'));
 app.use('/followers', require('./routes/followers'));
+app.use('/cloudinary', require('./routes/cloudinary'));
 
 
 app.all('*', (req, res) => {

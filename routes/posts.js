@@ -9,7 +9,7 @@ router.get('/',postController.getAllPosts);
 router.get('/user/:userId',postController.getPostByUser);
 router.get('/following/:userId',postController.userFollowingPosts);
 router.patch('/:postId',postController.updatePost);
-router.delete('/:postId',postController.deletePost);
+router.delete('/:userId/:postId',postController.deletePostByUserId);
 
 
 module.exports = router;
