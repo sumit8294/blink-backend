@@ -209,62 +209,62 @@ const generateRandomChats = async (count) => {
   }
   try {
     for (let i = 0; i < count; i++) {
-      const randomUser = await User.aggregate([{
-        $sample: {
-          size: 2
-        }
-      }]);
+      const randomUser = await User.aggregate([
+        {
+          $sample: {
+            size: 2,
+          },
+        },
+      ]);
       const participant1Id = randomUser[0]._id;
       const participant2Id = randomUser[1]._id;
 
       const existingParticipants = await Chat.findOne({
-        
-        participants:{
-          $in:[
-            [participant1Id,participant2Id],
-            [participant2Id,participant1Id]
-          ]
+        participants: {
+          $in: [
+            [participant1Id, participant2Id],
+            [participant2Id, participant1Id],
+          ],
         },
-
       });
 
-      const chat = (existingParticipants) 
-
-      ? await Chat.updateOne({
-        participants: existingParticipants.participants,
-        $set:{
-          messages: [
-            ...existingParticipants.messages,
+      const chat = existingParticipants
+        ? await Chat.updateOne(
             {
-              sender: casual.random_element([participant1Id, participant2Id]),
-              content: casual.sentence,
-              sendAt: casual.date(format = 'YYYY-MM-DD hh:m:s'),
+              participants: existingParticipants.participants,
+            },
+            {
+              $push: {
+                messages: {
+                  sender: casual.random_element([participant1Id, participant2Id]),
+                  content: casual.sentence,
+                  sendAt: casual.date(format = 'YYYY-MM-DD hh:mm:ss'),
+                  deletedBy: [],
+                },
+              },
             }
-          ]
-        }
-      })
-      
-      :
-        new Chat({
-          participants: [participant1Id,participant2Id],
-          messages: {
-            sender: casual.random_element([participant1Id, participant2Id]),
-            content: casual.sentence,
-            sendAt: casual.date(format = 'YYYY-MM-DD hh:m:s'),
-          },
-          createdAt: casual.date(format = 'YYYY-MM-DD'),
-          
-        });
-      
-      if(!existingParticipants) {
-        await chat.save()
-        console.log(`Chats ${i + 1} saved:`, chat);  
-      }else{
-        console.log(`!! Chats updated !!`); 
-      }
+          )
+        : new Chat({
+            participants: [participant1Id, participant2Id],
+            messages: [
+              {
+                sender: casual.random_element([participant1Id, participant2Id]),
+                content: casual.sentence,
+                sendAt: casual.date(format = 'YYYY-MM-DD hh:mm:ss'),
+                deletedBy: [],
+              },
+            ],
+            createdAt: Date.now(),
+          });
 
-      
+      if (!existingParticipants) {
+        await chat.save();
+        console.log(`Chats ${i + 1} saved:`, chat);
+      } else {
+        console.log('!! Chats updated !!');
+      }
     }
+
 
     console.log('Random chats generation completed.');
   } catch (error) {

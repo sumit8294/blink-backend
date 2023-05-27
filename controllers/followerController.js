@@ -6,7 +6,7 @@ const follow = async (req,res) => {
 
 	const {userId,followerId} = req.body;
 
-	const loggedUserId = req.userId;
+	const loggedUserId = req.userId;// from session
 
 	if(loggedUserId !== followerId){
 		return res.status(403).json({message:'Forbidden'});
@@ -32,7 +32,7 @@ const unfollow = async (req,res) => {
 
 	const {userId,followerId} = req.body;
 
-	const loggedUserId = req.userId;
+	const loggedUserId = req.userId;// from session
 
 	if(loggedUserId !== followerId){
 		return res.status(403).json({message:'Forbidden'});

@@ -1,6 +1,6 @@
+
 const mongoose = require('mongoose');
-
-
+const User = require('./User');
 const chatSchema = new mongoose.Schema({
 	participants:[
 		{
@@ -15,7 +15,13 @@ const chatSchema = new mongoose.Schema({
 			sendAt: {
 				type: Date,
 				default: Date.now
-			}
+			},
+			deletedBy: [
+		        {
+		          type: mongoose.Schema.Types.ObjectId,
+		          ref: 'User',
+		        }
+		    ]
 		}
 	],
 	createdAt: { 
@@ -24,7 +30,8 @@ const chatSchema = new mongoose.Schema({
 	},
 
 })
-
+ 
 const Chat = mongoose.model('chats',chatSchema);
 
 module.exports = Chat;
+

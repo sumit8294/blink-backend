@@ -2,11 +2,15 @@ const express = require('express');
 const chatController = require('../controllers/chatController');
 
 
-const router = express.Router();
+const verifyJWT = require('../middleware/verifyJWT')
 
-router.post('/',chatController.createChat);
-router.get('/:userId',chatController.getAllChat);
-router.get('/chat/:chatId',chatController.getAllMessages);
-router.post('/:chatId/send-message', chatController.sendMessage);
+
+const router = express.Router()
+router.use(verifyJWT)
+
+router.post('/',chatController.createOrUpdateChats);
+router.get('/:userId',chatController.getChatsByUserId);
+router.get('/chat/:chatId',chatController.getMessagesByChatId);
+router.delete('/messages',chatController.deleteMessagesFromChat);
 
 module.exports = router;

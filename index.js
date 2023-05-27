@@ -10,6 +10,7 @@ const { logger, logEvents } = require('./middleware/logger');
 const errorHandler = require('./middleware/errorHandler');
 const rateLimit = require('express-rate-limit');
 
+
 const app= express();
 const PORT = 5000;
 
@@ -45,6 +46,7 @@ app.all('*', (req, res) => {
 
 app.use(errorHandler);
 
+
 mongoose.connection.once('open', () => {
     console.log('Connected to MongoDB');
     app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
@@ -54,3 +56,4 @@ mongoose.connection.on('error', err => {
     console.log(err);
     logEvents(`${err.no}: ${err.code}\t${err.syscall}\t${err.hostname}`, 'mongoErrLog.log');
 });
+
