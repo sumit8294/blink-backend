@@ -64,7 +64,12 @@ const deletePostImageFromCloud = async (req,res,imageName) => {
 
 const getAllPosts = async (req,res) => {
 
-	const posts = await Post.find({});
+	const posts = await Post.find({}).populate({
+	    path: 'user',
+	    model: User,
+	    select: '_id username profile'
+  	})
+  	.lean();;
 
 	if(!posts){
 		return res.status(404).json({message:'Posts not found'});

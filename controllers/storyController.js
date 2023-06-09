@@ -4,7 +4,7 @@ const Follower = require('../models/Follower');
 
 
 const createStory = async (req,res) => {
-
+	
 }
 
 const getAllStories = async (req,res) => {

@@ -50,7 +50,11 @@ const updateReel = async (req,res) => {
 
 const getAllReels = async (req,res) => {
 
-	const reels = await Reel.find({});
+	const reels = await Reel.find({}).populate({
+		path: 'user',
+		model: User,
+		select: '_id username profile'
+	});
 
 	if(!reels){
 		return res.status(404).json({message:'Reels not found'});

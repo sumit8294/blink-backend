@@ -15,3 +15,5 @@ const getSignature = (req, res) => {
 
 	res.json({ timestamp, signature })
 }
+
+module.exports = {getSignature};

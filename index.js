@@ -18,7 +18,7 @@ connectDB();
 
 const limiter = rateLimit({
   windowMs: 1000, // 1 second
-  max: 3, // 100 requests per windowMs
+  max: 1, 
 });
 app.use(limiter);
 app.use(logger);
@@ -51,6 +51,7 @@ app.use(errorHandler);
 mongoose.connection.once('open', () => {
     console.log('Connected to MongoDB');
     app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
+    
 });
 
 mongoose.connection.on('error', err => {
