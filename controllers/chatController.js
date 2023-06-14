@@ -95,11 +95,11 @@ const getChatsByUserId = async (req,res) => {
 
 	const {userId} = req.params;
 
-	const loggedUserId = req.userId;
+	// const loggedUserId = req.userId;
 
-	if(userId !== loggedUserId){
-		return res.status(401).json({message:'Unauthorized'});
-	}
+	// if(userId !== loggedUserId){
+	// 	return res.status(401).json({message:'Unauthorized'});
+	// }
 
 	const userExists = await User.exists({_id:userId});
 
@@ -109,11 +109,18 @@ const getChatsByUserId = async (req,res) => {
 
 	const chats = await Chat.find({ participants:{ $in:[userId] } })
 	.sort({'messages.sendAt':-1})
-	.populate({
-	    path: 'participants',
-	    model: User,
-	    select: '_id username profile'
-  	})
+	.populate([
+		{
+		    path: 'participants',
+		    model: User,
+		    select: '_id username profile'
+	  	},
+	  	{
+		    path: 'messages.sender',
+		    model: User,
+		    select: '_id username profile'
+	  	},
+  	])
   	.lean();
 
 	if(!chats?.length){
@@ -121,8 +128,16 @@ const getChatsByUserId = async (req,res) => {
 	}
 
 	chats.forEach(chat => {
-      chat.messages.sort((a, b) => b.sendAt - a.sendAt);
-      chat.messages = chat.messages.slice(0, 1);
+    	chat.messages.sort((a, b) => b.sendAt - a.sendAt);
+    	chat.messages = chat.messages.slice(0, 1);
+
+    	if(userId !== String(chat.participants[0]._id)){
+    		chat.participants.splice(1,1);
+
+    	} else{
+    		chat.participants.splice(0,1);
+    	} 
+
     });
 
 	return res.status(200).json(chats);
@@ -135,23 +150,29 @@ const getMessagesByChatId = async (req,res) =>{
 
 	const {chatId} = req.params;
 
-	const loggedUserId = req.userId;
+	// const loggedUserId = req.params.userId;
 
-	const chatHasloggedUserId = await Chat.exists({_id:chatId, participants: loggedUserId });
+	// const chatHasloggedUserId = await Chat.exists({_id:chatId, participants: loggedUserId });
 
-	if(!chatHasloggedUserId){
-		return res.status(401).json({message:'Unauthorized'});
-	}
+	// if(!chatHasloggedUserId){
+	// 	return res.status(401).json({message:'Unauthorized'});
+	// }
 
 	let chat = await Chat.findOne({
 		_id:chatId,
-		participants: loggedUserId,
 	})
-	.populate({
-	    path: 'participants',
-	    model: User,
-	    select: '_id username profile'
-  	})
+	.populate([
+		{
+		    path: 'participants',
+		    model: User,
+		    select: '_id username profile'
+	  	},
+	  	{
+	  		path: 'messages.sender',
+	  		model: User,
+	  		select: '_id username profile'
+	  	},
+  	])
   	.lean();
 
 	if(!chat){
@@ -159,6 +180,13 @@ const getMessagesByChatId = async (req,res) =>{
 	}
 
     chat.messages.sort((a, b) => b.sendAt - a.sendAt);
+
+    if(req.params.userId !== String(chat.participants[0]._id)){
+    	chat.participants.splice(1,1);
+
+    } else {
+    	chat.participants.splice(0,1);
+    }
 
 
 	return res.status(200).json(chat);

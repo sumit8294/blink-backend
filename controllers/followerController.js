@@ -56,7 +56,7 @@ const unfollow = async (req,res) => {
 
 const getFollowings = async (req,res) => {
 
-	const {userId} = req.param;
+	const {userId} = req.params;
 
 	const userExists = await User.exists({_id:userId});
 
@@ -64,7 +64,13 @@ const getFollowings = async (req,res) => {
 		return res.status(404).json({message:'User not found'});
 	}
 
-	const followings = await Follower.find({ follower: userId }).lean();
+	const followings = await Follower.find({ follower: userId })
+	.populate({
+		path: 'user',
+		model: User,
+		select: '_id profile username'
+	})
+	.lean();
 
 	if(!followings?.length){
 		return res.status(400).json({message:'No followings found'})
@@ -77,7 +83,7 @@ const getFollowings = async (req,res) => {
 
 const getFollowers = async (req,res) => {
 
-	const {userId} = req.param;
+	const {userId} = req.params;
 
 	const userExists = await User.exists({_id:userId});
 
@@ -85,13 +91,19 @@ const getFollowers = async (req,res) => {
 		return res.status(404).json({message:'User not found'});
 	}
 
-	const followings = await Follower.find({ user: userId }).lean();
+	const followers = await Follower.find({ user: userId })
+	.populate({
+		path: 'follower',
+		model: User,
+		select: '_id profile username'
+	})
+	.lean();
 
-	if(!followings?.length){
+	if(!followers?.length){
 		return res.status(400).json({message:'No followers found'})
 	}
 
-	return res.status(200).json(followings);
+	return res.status(200).json(followers);
 	
 }
 

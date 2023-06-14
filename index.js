@@ -17,8 +17,11 @@ const PORT = 5000;
 connectDB();
 
 const limiter = rateLimit({
-  windowMs: 1000, // 1 second
-  max: 1, 
+    windowMs: 1000, // 1 second
+    max: 3,
+    handler: (req, res, next) => {
+        console.log('Rate limit exceeded!! increase limit in index.js');
+    } 
 });
 app.use(limiter);
 app.use(logger);
@@ -48,10 +51,10 @@ app.all('*', (req, res) => {
 app.use(errorHandler);
 
 
+
 mongoose.connection.once('open', () => {
     console.log('Connected to MongoDB');
     app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
-    
 });
 
 mongoose.connection.on('error', err => {
