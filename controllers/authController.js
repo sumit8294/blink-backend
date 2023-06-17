@@ -16,10 +16,9 @@ const login = async (req,res) =>{
 		return res.status(401).json({message:'User not found'})
 	}
 
-	const match = await bcrypt.compare(password,user.password);
-    console.log(match, password, user.password);
+    const match = await bcrypt.compare(password,user.password);
 
-
+    //const match = password === user.password;
 
 	if(!match){
 		return res.status(401).json({message:'Wrong password'})
@@ -30,8 +29,7 @@ const login = async (req,res) =>{
             "UserInfo": {
                 "userId": user._id,
                 "username": user.username,
-                "appSettings": user.appSettings,
-                "bio":user.bio,
+                "profile": user.profile,
             }
         },
         process.env.ACCESS_TOKEN_SECRET,
@@ -59,7 +57,6 @@ const login = async (req,res) =>{
 
 const refresh = (req, res) => {
     const cookies = req.cookies
-
     if (!cookies?.jwt) return res.status(401).json({ message: 'Unauthorized' })
 
     const refreshToken = cookies.jwt
@@ -79,8 +76,7 @@ const refresh = (req, res) => {
                     "UserInfo": {
                         "userId": user._id,
                         "username": user.username,
-		                "appSettings": user.appSettings,
-		                "bio":user.bio,
+		                "profile": user.profile,
                     }
                 },
                 process.env.ACCESS_TOKEN_SECRET,
@@ -95,6 +91,7 @@ const refresh = (req, res) => {
 
 const logout = (req, res) => {
     const cookies = req.cookies
+    
     if (!cookies?.jwt) return res.sendStatus(204) //No content
     res.clearCookie('jwt', { httpOnly: true, sameSite: 'None', secure: true })
     res.json({ message: 'Cookie cleared' })

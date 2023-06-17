@@ -69,7 +69,7 @@ const getAllPosts = async (req,res) => {
 	    model: User,
 	    select: '_id username profile'
   	})
-  	.lean();;
+  	.lean();
 
 	if(!posts){
 		return res.status(404).json({message:'Posts not found'});

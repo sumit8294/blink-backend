@@ -179,7 +179,7 @@ const getMessagesByChatId = async (req,res) =>{
 		return res.status(400).json({message:'Messages not found'});
 	}
 
-    chat.messages.sort((a, b) => b.sendAt - a.sendAt);
+    // chat.messages.sort((a, b) => b.sendAt - a.sendAt); // working fine without this
 
     if(req.params.userId !== String(chat.participants[0]._id)){
     	chat.participants.splice(1,1);
