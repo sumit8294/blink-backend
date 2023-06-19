@@ -27,7 +27,7 @@ app.use(limiter);
 app.use(logger);
 app.use(express.json());
 app.use(cookieParser());
-app.use(cors(corsOptions))
+// app.use(cors(corsOptions))
 
 app.use('/users', require('./routes/users'));
 app.use('/auth', require('./routes/auth'));
@@ -37,6 +37,7 @@ app.use('/chats', require('./routes/chats'));
 app.use('/posts', require('./routes/posts'));
 app.use('/followers', require('./routes/followers'));
 app.use('/cloudinary', require('./routes/cloudinary'));
+app.use('/reactions',require('./routes/reactions'));
 
 
 app.all('*', (req, res) => {

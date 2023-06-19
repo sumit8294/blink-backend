@@ -6,43 +6,34 @@ const Chat = require('../models/Chat');
 
 const createOrUpdateChats = async (req,res) => {
 
-	const { participants, sender, content, sendAt } = req.body;
+	const { reciever, sender, content, contentType } = req.body;
 
-	const participant1Id = participants[0];
+	const typeToLowerCase = contentType && contentType.toLowerCase();
 
-	const participant2Id = participants[1];
+	//const loggedUserId = req.userId; // from session
+	// if( loggedUserId !== sender ) {
+	// 	return res.status(401).json({message: 'Unauthorized sender'})
+	// }
 
-	const loggedUserId = req.userId; // from session
+	const [ senderExists, recieverExists ] = await Promise.all([
 
-	const [ participant1Exists, participant2Exists ] = await Promise.all([
-
-  		User.exists({ _id: participant1Id }),
-  		User.exists({ _id: participant2Id }),
+  		User.exists({ _id: sender }),
+  		User.exists({ _id: reciever }),
 
 	]);
 
-	if( loggedUserId !== sender ) {
 
-		return res.status(401).json({message: 'Unauthorized sender'})
-	}
-
-	if( !participant1Exists || !participant2Exists ) {
+	if( !senderExists || !recieverExists ) {
 
 		return res.status(400).json({message: 'Participants are not valid'});
 	}
-
-	if(sender !== participant1Id && sender !== participant2Id){
-
-		return res.status(400).json({message: 'Not a valid sender Id'});
-	}
-
 
 	try{
 		const isExistingParticipants = await Chat.findOne({
 	        participants: {
 				$in: [
-					[participant1Id, participant2Id],
-					[participant2Id, participant1Id],
+					[sender, reciever],
+					[reciever, sender],
 				],
 	        },
 	    });
@@ -57,19 +48,19 @@ const createOrUpdateChats = async (req,res) => {
 			                messages: {
 			                	sender,
 			                	content,
-			                	sendAt,
+			                	contentType:typeToLowerCase,
 			                	deletedBy: [],
 			                },
 		            	},
 		            }
 	          	)
 	        : new Chat({
-		            participants: [participant1Id, participant2Id],
+		            participants: [sender, reciever],
 		            messages: [
 		              {
 		                sender,
 		                content,
-		                sendAt,
+		                contentType:typeToLowerCase,
 		                deletedBy: [],
 		              },
 		            ],

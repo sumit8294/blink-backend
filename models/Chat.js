@@ -16,6 +16,13 @@ const chatSchema = new mongoose.Schema({
 				type: Date,
 				default: Date.now
 			},
+			contentType:{
+				type:String,
+				enum: ['text','post','reel'],
+				required: true,
+				default: 'text'
+
+			},
 			deletedBy: [
 		        {
 		          type: mongoose.Schema.Types.ObjectId,
