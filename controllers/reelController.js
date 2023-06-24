@@ -1,6 +1,10 @@
 const Reel = require('../models/Reel');
 const User = require('../models/User');
 const Follower = require('../models/Follower');
+const ReelLike = require('../models/reactions/ReelLike');
+const Bookmark = require('../models/reactions/Bookmark');
+const ReelComment = require('../models/reactions/ReelComment');
+
 
 const createReel = async (req,res) => {
 
@@ -50,6 +54,8 @@ const updateReel = async (req,res) => {
 
 const getAllReels = async (req,res) => {
 
+	const {userId} = req.params;
+	
 	const reels = await Reel.find({}).populate({
 		path: 'user',
 		model: User,
@@ -60,7 +66,35 @@ const getAllReels = async (req,res) => {
 		return res.status(404).json({message:'Reels not found'});
 	}
 
-	return res.status(200).json(reels);
+	const followings = await Follower.find({follower:userId},{user:1,_id:0});
+	const followingId = followings.map(following => following.user);
+
+	const prepareReels = await Promise.all(reels.map(async (reel) => {
+
+		reel._doc.likeState = Boolean(await ReelLike.exists({ reel: reel._id, user: userId }));
+		reel._doc.bookmarkState = Boolean(await Bookmark.exists({ content: reel._id, user: userId }));
+		reel._doc.comments = await ReelComment.find({user:userId,reel:reel._id})
+		.limit(3)
+		.populate({
+		  path: 'user',
+		  model: User,
+		  select: '_id username profile',
+		}).lean()
+		reel._doc.mutualLikes = await ReelLike.find(
+		{ reel: reel._id, $or: [ {user: { $in: followingId }}, {user: userId}] },
+		{ user: 1, _id: 0 }
+		)
+		.populate({
+		  path: 'user',
+		  model: User,
+		  select: '_id username profile',
+		})
+		.lean();
+
+		return reel._doc;
+	}));
+
+	return res.status(200).json(prepareReels);
 }
 
 

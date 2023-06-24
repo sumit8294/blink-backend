@@ -1,30 +1,30 @@
-const Like = require('../../models/reactions/Like');
+const ReelLike = require('../../models/reactions/ReelLike');
 const User = require('../../models/User');
-const Post = require('../../models/Post');
+const Reel = require('../../models/Reel');
 
 const addLike = async (req,res) => {
 
-	const {userId,postId} = req.params;
+	const {userId,reelId} = req.params;
 
 	try{
 
-	    const result = await Like.updateOne(
-	    	{ user: userId, post: postId },
-	    	{ $setOnInsert: {user: userId, post: postId}},
+	    const result = await ReelLike.updateOne(
+	    	{ user: userId, reel: reelId },
+	    	{ $setOnInsert: {user: userId, reel: reelId}},
 	    	{ upsert:true}
 	    );
-
+	    console.log(result);
 	    if (result.upsertedCount === 0) {
 	  		return res.status(400).json({ message: 'Like entry already exists' });
 		}
 
-	    await Post.updateOne({ _id: postId }, { $inc: { 'reactions.likes': 1 } });
+	    await Reel.updateOne({ _id: reelId }, { $inc: { 'reactions.likes': 1 } });
 
 	    return res.status(200).json({message:'Like added'});
 
     }
     catch(error){
-
+    	console.log(error);
     	return res.status(400).json({ message: 'Failed to add like' });
     }
 
@@ -33,16 +33,16 @@ const addLike = async (req,res) => {
 
 const removeLike = async (req, res) => {
 
-	const {userId,postId} = req.params;
+	const {userId,reelId} = req.params;
 
 	try{
-		const removed = await Like.deleteOne({user:userId,post:postId});
+		const removed = await ReelLike.deleteOne({user:userId,reel:reelId});
 
-		if(removed.modifiedCount === 0){
+		if(removed.deletedCount === 0){ 
 			return res.status(400).json({message:'Like not removed'});
 		}
 
-		await Post.updateOne({ _id: postId }, { $inc: { 'reactions.likes': -1 } });
+		await Reel.updateOne({ _id: reelId }, { $inc: { 'reactions.likes': -1 } });
 
 		return res.status(200).json({ message: 'Like removed' });
 	}
@@ -53,11 +53,11 @@ const removeLike = async (req, res) => {
 
 }
 
-const getLikersByPostId = async (req,res) => {
+const getLikersByReelId = async (req,res) => {
 
-	const {postId} = req.params;
+	const {reelId} = req.params;
 
-	const likers = await Like.find({post:postId})
+	const likers = await ReelLike.find({reel:reelId})
 	.populate({
 		path: 'user',
 		model: User,
@@ -76,5 +76,5 @@ const getLikersByPostId = async (req,res) => {
 module.exports = {
 	addLike,
 	removeLike,
-	getLikersByPostId
+	getLikersByReelId
 }

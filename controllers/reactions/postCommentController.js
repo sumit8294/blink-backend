@@ -9,11 +9,11 @@ const addComment = async (req,res) => {
 
 	try{
 
-		await Comment.create({user:userId,post:postId,content});
+		const response = await Comment.create({user:userId,post:postId,content});
 
     	await Post.updateOne({ _id: postId }, { $inc: { 'reactions.comments': 1 } });
 
-    	return res.status(200).json({message: 'comment added'});
+    	return res.status(200).json({message: 'comment added',commentId:response._id});
 	}
 	catch(error){
 
@@ -30,7 +30,7 @@ const removeComment = async (req, res) => {
 	try{
 		const removed = await Comment.deleteOne({_id:commentId});
 
-		if(removed.modifiedCount === 0){
+		if(removed.deletedCount === 0){
 			return res.status(400).json({message:'Comment not removed'});
 		}
 

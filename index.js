@@ -27,7 +27,7 @@ app.use(limiter);
 app.use(logger);
 app.use(express.json());
 app.use(cookieParser());
-// app.use(cors(corsOptions))
+app.use(cors(corsOptions))
 
 app.use('/users', require('./routes/users'));
 app.use('/auth', require('./routes/auth'));

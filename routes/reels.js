@@ -4,10 +4,10 @@ const reelController = require('../controllers/reelController');
 
 const router = express.Router();
 
-router.post('/',reelController.createReel);
+router.post('/create',reelController.createReel);
+router.get('/:userId',reelController.getAllReels);
 router.delete('/:userId/:reelId',reelController.deleteReelByUserId);
 router.patch('/:reelId',reelController.updateReel);
-router.get('/',reelController.getAllReels);
 router.get('/user/:userId',reelController.getReelByUser);
 router.get('/following/:userId',reelController.userFollowingReels);
 

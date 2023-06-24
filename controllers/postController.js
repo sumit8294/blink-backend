@@ -1,6 +1,10 @@
 const Post = require('../models/Post');
 const User = require('../models/User');
 const Follower = require('../models/Follower');
+const Like = require('../models/reactions/Like');
+const Bookmark = require('../models/reactions/Bookmark');
+const Comment = require('../models/reactions/Comment');
+
 const cloudinaryConfig = require('../config/cloudinaryConfig');
 
 
@@ -64,18 +68,49 @@ const deletePostImageFromCloud = async (req,res,imageName) => {
 
 const getAllPosts = async (req,res) => {
 
+	const {userId} = req.params;
+	
 	const posts = await Post.find({}).populate({
 	    path: 'user',
 	    model: User,
 	    select: '_id username profile'
   	})
-  	.lean();
+
 
 	if(!posts){
 		return res.status(404).json({message:'Posts not found'});
 	}
 
-	return res.status(200).json(posts);
+	const followings = await Follower.find({follower:userId},{user:1,_id:0});
+	const followingId = followings.map(following => following.user);
+
+	const preparePosts = await Promise.all(posts.map(async (post) => {
+
+		post._doc.likeState = Boolean(await Like.exists({ post: post._id, user: userId }));
+		post._doc.bookmarkState = Boolean(await Bookmark.exists({ content: post._id, user: userId }));
+		post._doc.comments = await Comment.find({user:userId,post:post._id})
+		.limit(3)
+		.populate({
+		  path: 'user',
+		  model: User,
+		  select: '_id username profile',
+		}).lean()
+		post._doc.mutualLikes = await Like.find(
+		{ post: post._id, $or: [ {user: { $in: followingId }}, {user: userId}] },
+		{ user: 1, _id: 0 }
+		)
+		.populate({
+		  path: 'user',
+		  model: User,
+		  select: '_id username profile',
+		})
+		.lean();
+
+		return post._doc;
+	}));
+	
+	
+	return res.status(200).json(preparePosts);
 }
 
 
@@ -110,9 +145,9 @@ const userFollowingPosts = async (req,res) => {
 
 	try{
 
-		const followers = await Follower.find({follower:userId}).populate().exec();
+		const followers = await Follower.find({follower:userId});
 
-		const followingId = followers.map(follower => follower.user._id);
+		const followingId = followers.map(follower => follower.user);
 
 		const posts = await Post.find({user:{$in:followingId}}).exec();
 

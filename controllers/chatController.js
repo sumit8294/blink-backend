@@ -1,29 +1,25 @@
 const User = require('../models/User');
 const Chat = require('../models/Chat');
+const Reel = require('../models/Reel');
+const Post = require('../models/Post');
 
 
 //getChatsByUserId require to be add functionality for remove deleted messages
 
 const createOrUpdateChats = async (req,res) => {
 
-	const { reciever, sender, content, contentType } = req.body;
+	const { receiver, sender, content, contentType } = req.body;
 
 	const typeToLowerCase = contentType && contentType.toLowerCase();
 
-	//const loggedUserId = req.userId; // from session
-	// if( loggedUserId !== sender ) {
-	// 	return res.status(401).json({message: 'Unauthorized sender'})
-	// }
+	const [ receiverExists,senderExists ] = await Promise.all([
 
-	const [ senderExists, recieverExists ] = await Promise.all([
-
+  		User.exists({ _id: receiver }),
   		User.exists({ _id: sender }),
-  		User.exists({ _id: reciever }),
 
 	]);
 
-
-	if( !senderExists || !recieverExists ) {
+	if( !senderExists || !receiverExists ) {
 
 		return res.status(400).json({message: 'Participants are not valid'});
 	}
@@ -32,8 +28,8 @@ const createOrUpdateChats = async (req,res) => {
 		const isExistingParticipants = await Chat.findOne({
 	        participants: {
 				$in: [
-					[sender, reciever],
-					[reciever, sender],
+					[sender, receiver],
+					[receiver, sender],
 				],
 	        },
 	    });
@@ -47,7 +43,7 @@ const createOrUpdateChats = async (req,res) => {
 		            	$push: {
 			                messages: {
 			                	sender,
-			                	content,
+			                	content:content.imageUrl,
 			                	contentType:typeToLowerCase,
 			                	deletedBy: [],
 			                },
@@ -55,11 +51,11 @@ const createOrUpdateChats = async (req,res) => {
 		            }
 	          	)
 	        : new Chat({
-		            participants: [sender, reciever],
+		            participants: [sender, receiver],
 		            messages: [
 		              {
 		                sender,
-		                content,
+		                content:content.imageUrl,
 		                contentType:typeToLowerCase,
 		                deletedBy: [],
 		              },
@@ -71,13 +67,21 @@ const createOrUpdateChats = async (req,res) => {
 
         	await chat.save();
         
-      	} 
+      	}
+      	if(typeToLowerCase === 'post'){
+
+      		await Post.updateOne({ _id: content._id }, { $inc: { 'reactions.shares': 1 } });
+      	}
+      	if(typeToLowerCase === 'reel'){
+
+      		await Reel.updateOne({ _id: content._id }, { $inc: { 'reactions.shares': 1 } });
+      	}
 
 	    return res.status(200).json({message:'Message sent successfully'});
 
 	}
 	catch(error){
-	   	return res.status(500).json({message:'Failed to send message'});
+	   	return res.status(400).json({message:'Failed to send message'});
 	}
     
 }

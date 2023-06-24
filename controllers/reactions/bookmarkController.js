@@ -43,7 +43,11 @@ const removeBookmark = async (req,res) => {
 		const {contentId,userId,contentType} = req.params;
 		const typeToUpperCase = contentType.charAt(0).toUpperCase() + contentType.slice(1);
 
-		await Bookmark.deleteOne({content:contentId,user:userId,contentType:typeToUpperCase});
+		const removed = await Bookmark.deleteOne({content:contentId,user:userId,contentType:typeToUpperCase});
+
+		if(removed.deletedCount === 0){ 
+			return res.status(400).json({message:'Bookmark not removed'});
+		}
 
 		if(typeToUpperCase === 'Post'){
 			await Post.updateOne({_id:contentId},{$inc:{'reactions.bookmarks':-1}});

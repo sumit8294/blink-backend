@@ -4,10 +4,10 @@ const verifyJWT = require('../middleware/verifyJWT');
 
 const router = express.Router();
 
-router.use(verifyJWT);
+// router.use(verifyJWT);
 
 router.post('/create',postController.createPost);
-router.get('/',postController.getAllPosts);
+router.get('/:userId',postController.getAllPosts);
 router.get('/user/:userId',postController.getPostByUser);
 router.get('/following/:userId',postController.userFollowingPosts);
 router.patch('/:postId',postController.updatePost);
