@@ -1,5 +1,7 @@
 const User = require('../models/User')
+const Follower = require('../models/Follower')
 const bcrypt = require('bcrypt')
+const {ObjectId} = require('mongodb');
 
 const createUser = async (req,res) =>{
 
@@ -40,24 +42,37 @@ const updateUser = async (req,res) =>{
 
 const getAllUsers = async (req,res) =>{
 	
-	const users = await User.find().select('-password').lean();
+	const {loggedUserId} = req.params;
+
+	const users = await User.find().select('-password').limit(10).lean();
 
 	if (!users?.length) {
         return res.status(400).json({ message: 'No users found' })
     }
 
-    res.status(200).json(users);
+    const followings = await Follower.find({follower:loggedUserId},{user:1}).lean();
+    const followingIds = followings.map(item => item.user)
+
+    const preparedUsers = users.map(user => ({
+		...user,
+		isFollowing: followingIds.some(id => new ObjectId(id).equals(user._id))
+    }))
+
+    res.status(200).json(preparedUsers);
 }
 
 const getUser = async (req,res) =>{
 
-	const {userId} = req.params;
+	const {userId,loggedUserId} = req.params;
 	
-	const user = await User.findOne({_id:userId}).lean();
+	const user = await User.findOne({_id:userId}).select('-password').lean();
 
 	if(!user) {
 		return res.status(400).json({message: 'User not found'});
 	}
+
+	user.isFollowing = Boolean( await Follower.exists({user:userId,follower:loggedUserId}))
+	user.isFollower = Boolean( await Follower.exists({user:loggedUserId,follower:userId}))
 
 	res.status(200).json(user);
 }

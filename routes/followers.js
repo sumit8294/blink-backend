@@ -3,9 +3,9 @@ const followerController = require('../controllers/followerController');
 
 const router = express.Router();
 
-router.post('/follow',followerController.follow);
-router.post('/unfollow',followerController.unfollow);
-router.get('/following/:userId',followerController.getFollowings);
-router.get('/followers/:userId',followerController.getFollowers);
+router.post('/follow/:userId/:loggedUserId',followerController.follow);
+router.delete('/unfollow/:userId/:loggedUserId',followerController.unfollow);
+router.get('/following/:userId/:loggedUserId',followerController.getFollowings);
+router.get('/:userId/:loggedUserId',followerController.getFollowers);
 
 module.exports = router;

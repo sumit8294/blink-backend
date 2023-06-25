@@ -22,6 +22,18 @@ const userSchema = new mongoose.Schema({
 	profile:{
 		type: String,
 	},
+	followers:{
+		type: Number,
+		default: 0,
+	},
+	followings:{
+		type:Number,
+		default: 0,
+	},
+	posts:{
+		type:Number,
+		default: 0,
+	},
 	bio:{
 		type: String,
 	},
