@@ -1,10 +1,42 @@
 const Story = require('../models/Story');
 const User = require('../models/User');
 const Follower = require('../models/Follower');
-
+const cloudinary = require('cloudinary').v2;
+const cloudinaryConfig = require('../config/cloudinaryConfig')
+const {ObjectId} = require('mongodb')
 
 const createStory = async (req,res) => {
 	
+	const {
+		public_id,
+		version,
+		signature,
+		image,
+		secure_url,
+		userId,
+	} = req.body;
+
+	const expectedSignature = cloudinary.utils.api_sign_request({ public_id, version }, cloudinaryConfig.api_secret)
+
+	if(signature !== expectedSignature){
+		return res.status(403).json({message:'Invalid cloud signature'})
+	}
+
+	try{
+		const newStory = new Story({
+			user:userId,
+			story:image,
+		})
+
+		await newStory.save();
+
+		return res.status(201).json({message:'Story created successfully'})
+	}
+	catch(error){
+		return res.status(400).json({message:'Failed to create story'})
+	}
+	
+
 }
 
 const getAllStories = async (req,res) => {
@@ -47,17 +79,11 @@ const userFollowingStories = async (req,res) => {
 
 	const {userId} = req.params;
 
-	const userExists = await User.findOne({_id:userId}).lean().exec();
-
-	if(!userExists){
-		return res.status(401).json({message:'Not a valid User request'});
-	}
-
 	try {
 
-		const followers = await Follower.find({follower:userId}).exec();
+		const followings = await Follower.find({follower:userId}).exec();
 
-		const followingIds = followers.map(follower => follower.user._id);
+		const followingIds = followings.map(follower => follower.user);
 
 		const stories = await Story.find({user:{$in:followingIds}})
 		.populate({
@@ -65,13 +91,36 @@ const userFollowingStories = async (req,res) => {
 			model:User,
 			select:'_id profile username',
 		})
+		.sort({user:1})
 		.lean()
 		.exec();
+		
+		const preparedStories = [];
+		let index = -1;
+		let temp = null;
 
-		return res.status(200).json(stories);
+		stories.forEach((item) => {
+		  if (new ObjectId(item.user._id).equals(temp)) {
+		    // Add the story to the existing group
+		    preparedStories[index].story.push(item.story);
+		  } else {
+		    index++;
+		    // Create a new group for the user
+		    preparedStories[index] = {
+		      ...item,
+		      story: [item.story],
+		    };
+		    temp = new ObjectId(item.user._id);
+		  }
+		});
+		// preparedStories.forEach((item)=>{
+		// 	console.log(item[0]?.user,item)
+		// })
+
+		return res.status(200).json(preparedStories);
 	}
-	catch{
-
+	catch(error){
+		console.log(error)
 		return res.status(400).json({message:'Stories not found'});
 	}
 
@@ -82,31 +131,23 @@ const getActiveFollowingStories = async (req,res) => {
 
 	const {userId} = req.params;
 
-	const userExists = await User.findOne({_id:userId}).lean().exec();
-
-	if(!userExists){
-		return res.status(401).json({message:'Not a valid User request'});
-	}
-
+	
 	try {
+		
+		const followings = await Follower.find({follower:userId},{user:1,_id:0});
+		
+		const followingIds = followings.map(follower => follower.user);
+		
+		const storiesIds = await Story.find({user:{$in:followingIds}}).sort({user:1}).distinct('user');
+		
 
-		const followers = await Follower.find({follower:userId});
-
-		const followingIds = followers.map(follower => follower.user);
-
-
-		const stories = await Story.find({user:{$in:followingIds}},{user:1})
-		.populate({
-			path : 'user',
-			model: User,
-			select: '_id username profile',
-		}).lean();
-
+		const stories = await User.find({_id:{$in:storiesIds}}).select('_id profile username').lean()
+		
 		return res.status(200).json(stories);
 	}
-	catch{
+	catch(error){
 
-		return res.status(400).json({message:'Stories not found'});
+		return res.status(400).json({message:'Stories not found',error});
 	}
 
 

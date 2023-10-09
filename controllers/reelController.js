@@ -5,6 +5,8 @@ const ReelLike = require('../models/reactions/ReelLike');
 const Bookmark = require('../models/reactions/Bookmark');
 const ReelComment = require('../models/reactions/ReelComment');
 
+const cloudinaryConfig = require('../config/cloudinaryConfig');
+const cloudinary = require("cloudinary").v2
 
 const createReel = async (req,res) => {
 
@@ -13,36 +15,36 @@ const createReel = async (req,res) => {
 		public_id,
 		version,
 		signature,
-		videoName, 
+		secure_url,
+		video,
 		userId,
 		title,
-		createdAt,
 
 	} = req.body;
 
 	const expectedSignature = cloudinary.utils.api_sign_request({ public_id, version }, cloudinaryConfig.api_secret)
 
-	
 	if (expectedSignature !== signature) {	
 
 		return res.status(403).json({message:'Forbidden'})
 	}
 
-	const reel = new Reel({
+	try{
 
-		user: userId,
-		videoUrl: imageName,
-		title,
-		createdAt,
-	})
+		const reel = new Reel({
+			user: userId,
+			videoUrl: secure_url,
+			title,
+		})
 
-	const response = await reel.save();
+		await reel.save();
 
-	if(!response){
+		return res.status(201).json({message:'Reel created successfully'});
+	}
+	catch(error){
 		return res.status(400).json({message:'Failed to create reel'});
 	}
-
-	return res.status(201).json({message:'Reel created successfully'});
+	
 
 }
 

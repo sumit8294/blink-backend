@@ -13,7 +13,13 @@ const getSignature = (req, res) => {
 	cloudinaryConfig.api_secret
 	)
 
-	res.json({ timestamp, signature })
+	res.status(200).json({ timestamp, signature })
 }
 
-module.exports = {getSignature};
+const getCloudDetails = (req, res) => {
+
+	const {cloud_name, api_key} = cloudinaryConfig;
+	res.status(200).json({ cloud_name, api_key })
+}
+
+module.exports = {getSignature,getCloudDetails};

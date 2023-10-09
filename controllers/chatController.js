@@ -34,40 +34,123 @@ const createOrUpdateChats = async (req,res) => {
 	        },
 	    });
 
-		const chat = isExistingParticipants
-	        ? await Chat.updateOne(
+		if(contentType === 'post'){
 
-		            {participants: isExistingParticipants.participants},
+			const chat = isExistingParticipants
+		        ? await Chat.updateOne(
 
-		            {
-		            	$push: {
-			                messages: {
-			                	sender,
-			                	content:content.imageUrl,
-			                	contentType:typeToLowerCase,
-			                	deletedBy: [],
-			                },
-		            	},
-		            }
-	          	)
-	        : new Chat({
-		            participants: [sender, receiver],
-		            messages: [
-		              {
-		                sender,
-		                content:content.imageUrl,
-		                contentType:typeToLowerCase,
-		                deletedBy: [],
-		              },
-		            ],
-		            createdAt: Date.now(),
-	          	});
+			            {participants: isExistingParticipants.participants},
 
-	    if (!isExistingParticipants) {
+			            {
+			            	$push: {
+				                messages: {
+				                	sender,
+				                	content:content.imageUrl,
+				                	contentType:typeToLowerCase,
+				                	deletedBy: [],
+				                },
+			            	},
+			            }
+		          	)
+		        : new Chat({
+			            participants: [sender, receiver],
+			            messages: [
+			              {
+			                sender,
+			                content:content.imageUrl,
+			                contentType:typeToLowerCase,
+			                deletedBy: [],
+			              },
+			            ],
+			            createdAt: Date.now(),
+		          	});
 
-        	await chat.save();
+		    if (!isExistingParticipants) {
+
+        		await chat.save();
         
-      	}
+      		}
+	    }
+	    else if(contentType === 'reel'){
+
+	    	const chat = isExistingParticipants
+		        ? await Chat.updateOne(
+
+			            {participants: isExistingParticipants.participants},
+
+			            {
+			            	$push: {
+				                messages: {
+				                	sender,
+				                	content:content.videoUrl,
+				                	contentType:typeToLowerCase,
+				                	deletedBy: [],
+				                },
+			            	},
+			            }
+		          	)
+		        : new Chat({
+			            participants: [sender, receiver],
+			            messages: [
+			              {
+			                sender,
+			                content:content.videoUrl,
+			                contentType:typeToLowerCase,
+			                deletedBy: [],
+			              },
+			            ],
+			            createdAt: Date.now(),
+		          	});
+
+		    if (!isExistingParticipants) {
+
+        		await chat.save();
+        
+      		}
+	    }
+	    else if(contentType === 'text'){
+
+	    	const chat = isExistingParticipants
+		        ? await Chat.updateOne(
+
+			            {participants: isExistingParticipants.participants},
+
+			            {
+			            	$push: {
+				                messages: {
+				                	sender,
+				                	content:content,
+				                	contentType:typeToLowerCase,
+				                	deletedBy: [],
+				                },
+			            	},
+			            }
+		          	)
+		        : new Chat({
+			            participants: [sender, receiver],
+			            messages: [
+			              {
+			                sender,
+			                content:content,
+			                contentType:typeToLowerCase,
+			                deletedBy: [],
+			              },
+			            ],
+			            createdAt: Date.now(),
+		          	});
+
+		    if (!isExistingParticipants) {
+
+        		await chat.save();
+        
+      		}
+
+
+	    }
+
+
+
+	    
       	if(typeToLowerCase === 'post'){
 
       		await Post.updateOne({ _id: content._id }, { $inc: { 'reactions.shares': 1 } });

@@ -6,7 +6,7 @@ const Bookmark = require('../models/reactions/Bookmark');
 const Comment = require('../models/reactions/Comment');
 
 const cloudinaryConfig = require('../config/cloudinaryConfig');
-
+const cloudinary = require("cloudinary").v2
 
 const createPost = async (req,res) => {
 
@@ -15,13 +15,14 @@ const createPost = async (req,res) => {
 		public_id,
 		version,
 		signature,
-		imageName, 
+		secure_url,
+		image,
 		userId,
 		caption,
-		createdAt,
 
 	} = req.body;
-	 // based on the public_id and the version that the (potentially malicious) user is submitting...
+
+	// based on the public_id and the version that the (potentially malicious) user is submitting...
 	// we can combine those values along with our SECRET key to see what we would expect the signature to be if it was innocent / valid / actually coming from Cloudinary
 	const expectedSignature = cloudinary.utils.api_sign_request({ public_id, version }, cloudinaryConfig.api_secret)
 
@@ -31,21 +32,19 @@ const createPost = async (req,res) => {
 		return res.status(403).json({message:'Forbidden'})
 	}
 
-	const post = new Post({
+	try{
+		const post = new Post({
+			user: userId,
+			imageUrl: secure_url,
+			caption,
+		})
+		await post.save();
+		return res.status(201).json({message:'Post created successfully'});
 
-		user: userId,
-		imageUrl: imageName,
-		caption,
-		createdAt,
-	})
-
-	const response = await post.save();
-
-	if(!response){
+	}
+	catch(error){
 		return res.status(400).json({message:'Failed to create post'});
 	}
-
-	return res.status(201).json({message:'Post created successfully'});
 
 }
 
