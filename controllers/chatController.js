@@ -46,6 +46,7 @@ const createOrUpdateChats = async (req,res) => {
 				                messages: {
 				                	sender,
 				                	content:content.imageUrl,
+				                	contentId:content._id,
 				                	contentType:typeToLowerCase,
 				                	deletedBy: [],
 				                },
@@ -58,6 +59,7 @@ const createOrUpdateChats = async (req,res) => {
 			              {
 			                sender,
 			                content:content.imageUrl,
+			                contentId:content._id,
 			                contentType:typeToLowerCase,
 			                deletedBy: [],
 			              },
@@ -83,6 +85,7 @@ const createOrUpdateChats = async (req,res) => {
 				                messages: {
 				                	sender,
 				                	content:content.videoUrl,
+				                	contentId:content._id,
 				                	contentType:typeToLowerCase,
 				                	deletedBy: [],
 				                },
@@ -95,6 +98,7 @@ const createOrUpdateChats = async (req,res) => {
 			              {
 			                sender,
 			                content:content.videoUrl,
+			                contentId:content._id,
 			                contentType:typeToLowerCase,
 			                deletedBy: [],
 			              },
