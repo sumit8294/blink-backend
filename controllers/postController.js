@@ -187,11 +187,56 @@ const deletePostByUserId = async (req,res) => {
 	return res.status(403).json({message: 'Post not found or unauthorized'});
 }
 
+const getPostById = async (req,res) =>{
+
+	const {userId,postId} = req.params;
+
+	const post = await Post.findOne({_id:postId}).populate({
+	    path: 'user',
+	    model: User,
+	    select: '_id username profile'
+  	}).lean();
+
+	if(!post){
+		return res.status(404).json({message:'Post not found'});
+	}
+
+	const followings = await Follower.find({follower:userId},{user:1,_id:0});
+	const followingId = followings.map(following => following.user);
+	
+	const preparePosts = {
+		...post,
+		likeState: Boolean(await Like.exists({ post: post._id, user: userId })),
+		bookmarkState: Boolean(await Bookmark.exists({ content: post._id, user: userId })),
+		comments: await Comment.find({user:userId,post:post._id})
+		.limit(3)
+		.populate({
+		  path: 'user',
+		  model: User,
+		  select: '_id username profile',
+		}).lean(),
+		mutualLikes: await Like.find(
+		{ post: post._id, $or: [ {user: { $in: followingId }}, {user: userId}] },
+		{ user: 1, _id: 0 }
+		)
+		.populate({
+		  path: 'user',
+		  model: User,
+		  select: '_id username profile',
+		})
+		.lean()
+	}
+
+	return res.status(200).json(preparePosts);	
+	
+}
+
 module.exports = {
 	createPost,
 	getAllPosts,
 	getPostByUser,
 	userFollowingPosts,
 	updatePost,
-	deletePostByUserId
+	deletePostByUserId,
+	getPostById,
 }

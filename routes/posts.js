@@ -8,6 +8,7 @@ const router = express.Router();
 
 router.post('/create',postController.createPost);
 router.get('/:userId',postController.getAllPosts);
+router.get('/:postId/:userId',postController.getPostById)
 router.get('/user/:userId',postController.getPostByUser);
 router.get('/following/:userId',postController.userFollowingPosts);
 router.patch('/:postId',postController.updatePost);

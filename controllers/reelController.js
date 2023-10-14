@@ -172,6 +172,49 @@ const deleteReelByUserId = async (req,res) => {
 	return res.status(403).json({message: 'Reel not found or unauthorized'});
 }
 
+const getReelById = async (req,res) => {
+
+	const {userId,reelId} = req.params;
+
+	const reel = await Reel.findOne({_id: reelId}).populate({
+		path: 'user',
+		model: User,
+		select: '_id username profile'
+	}).lean();
+
+	if(!reel){
+		return res.status(404).json({message:'Reels not found'});
+	}
+
+	const followings = await Follower.find({follower:userId},{user:1,_id:0});
+	const followingId = followings.map(following => following.user);
+
+	const prepareReel = {
+		...reel,
+		likeState: Boolean(await ReelLike.exists({ reel: reel._id, user: userId })),
+		bookmarkState: Boolean(await Bookmark.exists({ content: reel._id, user: userId })),
+		comments: await ReelComment.find({user:userId,reel:reel._id})
+		.limit(3)
+		.populate({
+		  path: 'user',
+		  model: User,
+		  select: '_id username profile',
+		}).lean(),
+		mutualLikes: await ReelLike.find(
+		{ reel: reel._id, $or: [ {user: { $in: followingId }}, {user: userId}] },
+		{ user: 1, _id: 0 }
+		)
+		.populate({
+		  path: 'user',
+		  model: User,
+		  select: '_id username profile',
+		})
+		.lean()
+	}
+	return res.status(200).json(prepareReel);
+	
+}
+
 module.exports = {
 	createReel,
 	deleteReelByUserId,
@@ -179,4 +222,5 @@ module.exports = {
 	getAllReels,
 	getReelByUser,
 	userFollowingReels,
+	getReelById
 }
