@@ -112,6 +112,58 @@ const getAllPosts = async (req,res) => {
 	return res.status(200).json(preparePosts);
 }
 
+const getRandomPosts = async (req,res) => {
+
+	const {userId,count} = req.params;
+
+	const posts = await Post.aggregate([
+		{$sample: {size: Number(count) || 10}}
+	])
+
+	if(!posts){
+		return res.status(404).json({message:'Posts not found'});
+	}
+
+	const populatedPosts = await Post.populate(posts,{
+		path: 'user',
+		model: User,
+		select: '_id username profile'
+	})
+
+	
+
+	const followings = await Follower.find({follower:userId},{user:1,_id:0});
+	const followingId = followings.map(following => following.user);
+
+	const preparePosts = await Promise.all(populatedPosts.map(async (post) => {
+
+		post.likeState = Boolean(await Like.exists({ post: post._id, user: userId }));
+		post.bookmarkState = Boolean(await Bookmark.exists({ content: post._id, user: userId }));
+		post.comments = await Comment.find({user:userId,post:post._id})
+		.limit(3)
+		.populate({
+		  path: 'user',
+		  model: User,
+		  select: '_id username profile',
+		}).lean()
+		post.mutualLikes = await Like.find(
+		{ post: post._id, $or: [ {user: { $in: followingId }}, {user: userId}] },
+		{ user: 1, _id: 0 }
+		)
+		.populate({
+		  path: 'user',
+		  model: User,
+		  select: '_id username profile',
+		})
+		.lean();
+
+		return post;
+	}));
+	
+	
+	return res.status(200).json(preparePosts);
+}
+
 
 const getPostByUser = async (req,res) => {
 	
@@ -239,4 +291,5 @@ module.exports = {
 	updatePost,
 	deletePostByUserId,
 	getPostById,
+	getRandomPosts,
 }

@@ -11,6 +11,6 @@ router.delete('/:userId/:reelId',reelController.deleteReelByUserId);
 router.patch('/:reelId',reelController.updateReel);
 router.get('/user/:userId',reelController.getReelByUser);
 router.get('/following/:userId',reelController.userFollowingReels);
-
+router.get('/random/:count/:userId',reelController.getRandomReels)
 
 module.exports = router;

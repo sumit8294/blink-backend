@@ -82,10 +82,40 @@ const deleteUser = async (req,res) =>{
 	res.send({message:"not Added delete function yet"})
 }
 
+const updateSettings = async (req,res) =>{
+	const data = req.body;
+	const {userId} = req.params;
+	let user = await User.findOne({_id:userId}).lean();
+
+	updateObject = {
+		...user,
+		profile: `${data.fileUrl}`,
+		bio: data.bio,
+		username: data.name,
+	} 
+
+	await User.findOneAndUpdate({ _id:userId }, updateObject, { new: true });
+
+	res.status(200).json({message:'user settings updated'})
+}
+
+const getSettings = async (req,res) =>{
+	
+	const {userId} = req.params;
+	let user = await User.findOne({_id:userId}).select('profile bio username').lean();
+	
+	if(!user){
+		res.status(400).json({message:'user not found'});
+	}
+	res.status(200).json(user);
+}
+
 module.exports = {
 	createUser,
 	updateUser,
 	getUser,
 	getAllUsers,
-	deleteUser
+	deleteUser,
+	updateSettings,
+	getSettings
 };

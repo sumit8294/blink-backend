@@ -47,6 +47,10 @@ const userSchema = new mongoose.Schema({
 	},
 	age: {
 		type: Number,
+	},
+	has_active_stories: {
+		type: Boolean,
+		default: false,
 	}
 });
 

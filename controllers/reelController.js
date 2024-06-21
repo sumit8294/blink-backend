@@ -100,6 +100,62 @@ const getAllReels = async (req,res) => {
 }
 
 
+const getRandomReels = async (req,res) => {
+
+	const {userId,count} = req.params;
+	
+	// const reels = await Reel.find({}).populate({
+	// 	path: 'user',
+	// 	model: User,
+	// 	select: '_id username profile'
+	// });
+
+	const reels = await Reel.aggregate([
+		{$sample: {size: Number(count) || 10}}
+	])
+	
+	if(!reels){
+		return res.status(404).json({message:'Reels not found'});
+	}
+
+	const populatedReels = await Reel.populate(reels,{
+		path: 'user',
+		model: User,
+		select: '_id username profile'
+	})
+
+
+	const followings = await Follower.find({follower:userId},{user:1,_id:0});
+	const followingId = followings.map(following => following.user);
+
+	const prepareReels = await Promise.all(populatedReels.map(async (reel) => {
+
+		reel.likeState = Boolean(await ReelLike.exists({ reel: reel._id, user: userId }));
+		reel.bookmarkState = Boolean(await Bookmark.exists({ content: reel._id, user: userId }));
+		reel.comments = await ReelComment.find({user:userId,reel:reel._id})
+		.limit(3)
+		.populate({
+		  path: 'user',
+		  model: User,
+		  select: '_id username profile',
+		}).lean()
+		reel.mutualLikes = await ReelLike.find(
+		{ reel: reel._id, $or: [ {user: { $in: followingId }}, {user: userId}] },
+		{ user: 1, _id: 0 }
+		)
+		.populate({
+		  path: 'user',
+		  model: User,
+		  select: '_id username profile',
+		})
+		.lean();
+
+		return reel;
+	}));
+
+	return res.status(200).json(prepareReels);
+}
+
 const getReelByUser = async (req,res) => {
 	
 	const {userId} = req.params;
@@ -222,5 +278,6 @@ module.exports = {
 	getAllReels,
 	getReelByUser,
 	userFollowingReels,
-	getReelById
+	getReelById,
+	getRandomReels
 }

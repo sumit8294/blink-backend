@@ -9,16 +9,34 @@ const cors = require('cors');
 const { logger, logEvents } = require('./middleware/logger');
 const errorHandler = require('./middleware/errorHandler');
 const rateLimit = require('express-rate-limit');
-
+const http = require("http");
 
 const app= express();
+const server = http.createServer(app);
+const {socketConnection} = require('./config/SocketIOConn')
+
 const PORT = 5000;
+const io = socketConnection(server);
+  io.on("connection", (socket) => {
+    console.log(`User Connected: ${socket.id}`);
+  
+    socket.on("hello_message", (data) => {
+        console.log(data)
+    });
+
+    socket.on("join_room",(data)=>{
+        socket.join(data)
+    })
+    socket.on('hello_message',(data)=>{
+        socket.emit("server_message",{message:"From server"})
+    })
+  });
 
 connectDB();
 
 const limiter = rateLimit({
     windowMs: 1000, // 1 second
-    max: 5,
+    max: 10,
     handler: (req, res, next) => {
         console.log('Rate limit exceeded!! increase limit in index.js');
     } 
@@ -38,7 +56,7 @@ app.use('/posts', require('./routes/posts'));
 app.use('/followers', require('./routes/followers'));
 app.use('/cloudinary', require('./routes/cloudinary'));
 app.use('/reactions',require('./routes/reactions'));
-
+app.use('/suggestions',require('./routes/userSuggestions'));
 
 app.all('*', (req, res) => {
     res.status(404)
@@ -53,9 +71,11 @@ app.use(errorHandler);
 
 
 
-mongoose.connection.once('open', () => {
+mongoose.connection.once('open', async () => {
     console.log('Connected to MongoDB');
-    app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
+    //app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
+    server.listen(PORT, () => console.log(`Server running on port ${PORT}`));
+
 });
 
 mongoose.connection.on('error', err => {

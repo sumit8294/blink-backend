@@ -26,9 +26,12 @@ const createStory = async (req,res) => {
 		const newStory = new Story({
 			user:userId,
 			story:image,
+			expiresAt: new Date( Date.now() + 24 * 60 * 60 * 1000)
 		})
 
 		await newStory.save();
+
+		// await User.findByIdAndUpdate(userId,{has_active_stories:true})
 
 		return res.status(201).json({message:'Story created successfully'})
 	}
@@ -59,8 +62,8 @@ const getStoriesByUser = async (req,res) => {
 	if(!userExists){
 		return res.status(401).json({message:'Not a valid User request'});
 	}
-
-	const stories = await Story.findOne({user:userId})
+	const stories = await Story.find({user:userId,expiresAt:{$gte: new Date()}}) 
+	//const stories = await Story.find({user:userId})
 	.populate({
 			path:'user',
 			model:User,
@@ -68,12 +71,31 @@ const getStoriesByUser = async (req,res) => {
 		})
 	.lean()
 	.exec();
-
 	if(!stories){
 		return res.status(400).json({message:'Stories not Found'});
 	}
+	const preparedStories = [];
+		let index = -1;
+		let temp = null;
 
-	return res.status(200).json(stories);
+		stories.forEach((item) => {
+		  if (new ObjectId(item.user._id).equals(temp)) {
+		    // Add the story to the existing group
+		    preparedStories[index].story.push(item.story);
+		  } else {
+		    index++;
+		    // Create a new group for the user
+		    preparedStories[index] = {
+		      ...item,
+		      story: [item.story],
+		    };
+		    temp = new ObjectId(item.user._id);
+		  }
+		});
+
+	
+
+	return res.status(200).json(preparedStories);
 }
 const userFollowingStories = async (req,res) => {
 
@@ -85,7 +107,8 @@ const userFollowingStories = async (req,res) => {
 
 		const followingIds = followings.map(follower => follower.user);
 
-		const stories = await Story.find({user:{$in:followingIds}})
+		const stories = await Story.find({user:{$in:followingIds},expiresAt:{$gte: new Date()}}) //----------> still need to make a condition where only past 24 hours stories are fetched 
+		//const stories = await Story.find({user:{$in:followingIds}}) 
 		.populate({
 			path:'user',
 			model:User,
@@ -94,7 +117,7 @@ const userFollowingStories = async (req,res) => {
 		.sort({user:1})
 		.lean()
 		.exec();
-		
+		// console.log(stories);
 		const preparedStories = [];
 		let index = -1;
 		let temp = null;
@@ -138,13 +161,38 @@ const getActiveFollowingStories = async (req,res) => {
 		
 		const followingIds = followings.map(follower => follower.user);
 		
-		const storiesIds = await Story.find({user:{$in:followingIds}}).sort({user:1}).distinct('user');
+		// const storiesIds = await Story.find({user:{$in:followingIds}}).sort({user:1}).distinct('user');
 		
-
-		const stories = await User.find({_id:{$in:storiesIds}}).select('_id profile username').lean()
+		// const preparedStoriesIds = await Promise.all(storiesIds.map(async item => {
+		// 	const expiresTimes = await Story.findOne({user: new ObjectId(item)}).select('expiresAt').sort({expiresAt: -1});
+		// 	return expiresTimes && expiresTimes.expiresAt < new Date();
+		// }));
 		
-		return res.status(200).json(stories);
-	}
+		// const validStoriesIds = storiesIds.filter((_,index) =>preparedStoriesIds[index]);
+		
+		
+		const currentDateTime = new Date();
+		
+		// Step 1: Find users with active stories and check expiration
+		const activeUsersWithStories = await Story.aggregate([
+		{ $match: { user: { $in: followingIds } } },
+		{ $sort: { user: 1, expiresAt: -1 } },
+		{
+			$group: {
+			_id: '$user',
+			latestExpiresAt: { $first: '$expiresAt' }
+		}
+	},
+		{ $match: { latestExpiresAt: { $gt: currentDateTime } } },
+		{ $project: { _id: 1 } }
+	]);
+	
+	// Step 2: Extract user IDs
+	const activeUserIds = activeUsersWithStories.map(doc => doc._id);
+	
+	const stories = await User.find({_id:{$in:activeUserIds}}).select('_id profile username').lean()
+	return res.status(200).json(stories);
+}
 	catch(error){
 
 		return res.status(400).json({message:'Stories not found',error});

@@ -19,7 +19,9 @@ const storySchema = new mongoose.Schema({
 		type: Date,
 		default: Date.now 
 	},
-	
+	expiresAt: {
+		type: Date,
+	}
 });
 
 const Story = mongoose.model('stories',storySchema);
