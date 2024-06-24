@@ -3,6 +3,9 @@ const Chat = require('../models/Chat');
 const Reel = require('../models/Reel');
 const Post = require('../models/Post');
 
+// const {io,generateSocketRooms,sendMessage} = require('../config/SocketIOConn')
+const {sendMessage} = require('../config/SocketIOConn')
+
 
 //getChatsByUserId require to be add functionality for remove deleted messages
 
@@ -163,7 +166,7 @@ const createOrUpdateChats = async (req,res) => {
 
       		await Reel.updateOne({ _id: content._id }, { $inc: { 'reactions.shares': 1 } });
       	}
-
+		await sendMessage(req.body)
 	    return res.status(200).json({message:'Message sent successfully'});
 
 	}
@@ -189,7 +192,7 @@ const getChatsByUserId = async (req,res) => {
 		return res.status(404).json({message:'User not found'});
 	}
 
-	const chats = await Chat.find({ participants:{ $in:[userId] } })
+	let chats = await Chat.find({ participants:{ $in:[userId] } })
 	.sort({'messages.sendAt':-1})
 	.populate([
 		{
@@ -209,21 +212,37 @@ const getChatsByUserId = async (req,res) => {
 		return res.status(400).json({message:'Chats not found'});
 	}
 
+	let receiversRoomIds = [];
+	let preparedChats = [];
+
 	chats.forEach(chat => {
     	chat.messages.sort((a, b) => b.sendAt - a.sendAt);
     	chat.messages = chat.messages.slice(0, 1);
 
     	if(userId !== String(chat.participants[0]._id)){
+			const rId = String(chat.participants[0]._id);
+			receiversRoomIds.push(rId)
+			preparedChats.push({...chat, receiversRoomId:rId})
     		chat.participants.splice(1,1);
-
     	} else{
+			const rId = String(chat.participants[1]._id);
+			receiversRoomIds.push(rId)
+			preparedChats.push({...chat, receiversRoomId:rId})
     		chat.participants.splice(0,1);
+			
+
     	} 
 
     });
+	
 
-	return res.status(200).json(chats);
+	const chatsAndRecieverIds = {chats:preparedChats,receiversRoomIds}
+	
+	//generateSocketRooms(userId,receiversRoomIds);
+
+	return res.status(200).json(chatsAndRecieverIds);
 }
+
 
 const getMessagesByChatId = async (req,res) =>{
 

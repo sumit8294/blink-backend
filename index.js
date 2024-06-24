@@ -1,7 +1,7 @@
 require('dotenv').config();
 require('express-async-errors');
+const express = require("express");
 const mongoose = require('mongoose');
-const express = require('express');
 const connectDB = require('./config/dbConn');
 const corsOptions = require('./config/corsOptions');
 const cookieParser = require('cookie-parser');
@@ -9,28 +9,10 @@ const cors = require('cors');
 const { logger, logEvents } = require('./middleware/logger');
 const errorHandler = require('./middleware/errorHandler');
 const rateLimit = require('express-rate-limit');
-const http = require("http");
 
-const app= express();
-const server = http.createServer(app);
-const {socketConnection} = require('./config/SocketIOConn')
+const {server,app} = require('./config/serverConfig')
 
 const PORT = 5000;
-const io = socketConnection(server);
-  io.on("connection", (socket) => {
-    console.log(`User Connected: ${socket.id}`);
-  
-    socket.on("hello_message", (data) => {
-        console.log(data)
-    });
-
-    socket.on("join_room",(data)=>{
-        socket.join(data)
-    })
-    socket.on('hello_message',(data)=>{
-        socket.emit("server_message",{message:"From server"})
-    })
-  });
 
 connectDB();
 
