@@ -8,39 +8,19 @@ const chatSchema = new mongoose.Schema({
 			ref: 'User',
 		}
 	],
-	messages: [
-		{
-			sender: {type: mongoose.Schema.Types.ObjectId, ref: 'User'},
-			content: {type: String},
-			contentId: {
-				type: mongoose.Schema.Types.ObjectId,
-				default: null
-			},
-			sendAt: {
-				type: Date,
-				default: Date.now
-			},
-			contentType:{
-				type:String,
-				enum: ['text','post','reel'],
-				required: true,
-				default: 'text'
-
-			},
-			deletedBy: [
-		        {
-		          type: mongoose.Schema.Types.ObjectId,
-		          ref: 'User',
-		        }
-		    ]
-		}
-	],
 	createdAt: { 
 		type: Date,
 		default: Date.now 
 	},
+	lastMessageAt: {
+		type: Date,
+		default: Date.now,
+	},
 
 })
+
+chatSchema.index({ participants: 1 });
+chatSchema.index({ lastMessageAt: -1 });
  
 const Chat = mongoose.model('chats',chatSchema);
 

@@ -10,7 +10,7 @@ const { logger, logEvents } = require('./middleware/logger');
 const errorHandler = require('./middleware/errorHandler');
 const rateLimit = require('express-rate-limit');
 
-const {server,app} = require('./config/serverConfig')
+const {server,app} = require('./config/serverConfig');
 
 const PORT = 5000;
 
@@ -57,7 +57,6 @@ mongoose.connection.once('open', async () => {
     console.log('Connected to MongoDB');
     //app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
     server.listen(PORT, () => console.log(`Server running on port ${PORT}`));
-
 });
 
 mongoose.connection.on('error', err => {

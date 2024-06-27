@@ -2,8 +2,7 @@ const User = require('../models/User');
 const Chat = require('../models/Chat');
 const Reel = require('../models/Reel');
 const Post = require('../models/Post');
-
-// const {io,generateSocketRooms,sendMessage} = require('../config/SocketIOConn')
+const Message = require('../models/Message');
 const {sendMessage} = require('../config/SocketIOConn')
 
 
@@ -11,7 +10,9 @@ const {sendMessage} = require('../config/SocketIOConn')
 
 const createOrUpdateChats = async (req,res) => {
 
-	const { receiver, sender, content, contentType } = req.body;
+	const { receiver, sender, content, contentType, chatId } = req.body;
+
+	let newChatId = null; // use if new chat has created between user
 
 	const typeToLowerCase = contentType && contentType.toLowerCase();
 
@@ -118,39 +119,39 @@ const createOrUpdateChats = async (req,res) => {
 	    else if(contentType === 'text'){
 
 	    	const chat = isExistingParticipants
-		        ? await Chat.updateOne(
-
-			            {participants: isExistingParticipants.participants},
-
-			            {
-			            	$push: {
-				                messages: {
-				                	sender,
-				                	content:content,
-				                	contentType:typeToLowerCase,
-				                	deletedBy: [],
-				                },
-			            	},
-			            }
-		          	)
+		        ? 
+					new Message({
+						chatId,
+						sender,
+						content:content,
+						contentType:typeToLowerCase,
+						deletedBy: [],	
+					})
+				
 		        : new Chat({
 			            participants: [sender, receiver],
-			            messages: [
-			              {
-			                sender,
-			                content:content,
-			                contentType:typeToLowerCase,
-			                deletedBy: [],
-			              },
-			            ],
 			            createdAt: Date.now(),
 		          	});
 
 		    if (!isExistingParticipants) {
 
-        		await chat.save();
+        		const result = await chat.save();
+				newChatId = result._id;
+				
+				const newMessage = new Message({
+					chatId: result._id,
+					sender,
+					content:content,
+					contentType:typeToLowerCase,
+					deletedBy: [],	
+				})
+				await newMessage.save();
         
-      		}
+      		}else{
+				const result = await chat.save();
+				await Chat.updateOne({_id:chatId},{lastMessageAt:result.sendAt})
+		
+			}
 
 
 	    }
@@ -166,11 +167,13 @@ const createOrUpdateChats = async (req,res) => {
 
       		await Reel.updateOne({ _id: content._id }, { $inc: { 'reactions.shares': 1 } });
       	}
-		await sendMessage(req.body)
-	    return res.status(200).json({message:'Message sent successfully'});
+
+		await sendMessage(req.body) //socket.io functionality for sending message
+	    return res.status(200).json({message:'Message sent successfully',newChatId});
 
 	}
 	catch(error){
+		
 	   	return res.status(400).json({message:'Failed to send message'});
 	}
     
@@ -180,69 +183,78 @@ const getChatsByUserId = async (req,res) => {
 
 	const {userId} = req.params;
 
-	// const loggedUserId = req.userId;
-
-	// if(userId !== loggedUserId){
-	// 	return res.status(401).json({message:'Unauthorized'});
-	// }
-
-	const userExists = await User.exists({_id:userId});
-
-	if(!userExists){
-		return res.status(404).json({message:'User not found'});
-	}
-
-	let chats = await Chat.find({ participants:{ $in:[userId] } })
-	.sort({'messages.sendAt':-1})
-	.populate([
-		{
-		    path: 'participants',
-		    model: User,
-		    select: '_id username profile'
-	  	},
-	  	{
-		    path: 'messages.sender',
-		    model: User,
-		    select: '_id username profile'
-	  	},
-  	])
-  	.lean();
+	const chats = await Chat.find({participants: {$in:[userId]}})
+							.sort({lastMessageAt:-1})
+							.populate({
+								path:'participants',
+								model: User,
+								select: '_id username profile'
+							});
 
 	if(!chats?.length){
 		return res.status(400).json({message:'Chats not found'});
 	}
-
-	let receiversRoomIds = [];
-	let preparedChats = [];
-
-	chats.forEach(chat => {
-    	chat.messages.sort((a, b) => b.sendAt - a.sendAt);
-    	chat.messages = chat.messages.slice(0, 1);
-
-    	if(userId !== String(chat.participants[0]._id)){
-			const rId = String(chat.participants[0]._id);
-			receiversRoomIds.push(rId)
-			preparedChats.push({...chat, receiversRoomId:rId})
-    		chat.participants.splice(1,1);
-    	} else{
-			const rId = String(chat.participants[1]._id);
-			receiversRoomIds.push(rId)
-			preparedChats.push({...chat, receiversRoomId:rId})
-    		chat.participants.splice(0,1);
-			
-
-    	} 
-
-    });
 	
+	const chatsWithLastMessage = await Promise.all(chats.map(async (chat)=>{
+		const chatId = chat._id
+		const message = await Message.findOne({chatId})
+		.sort({sendAt:-1})
+		.populate({
+			path:'sender',
+			model: User,
+			select: '_id username profile'
+		})
+		
+		if(userId === String(chat.participants[1]._id)){
+			return {message,chatId,participants:chat.participants.splice(0,1)}
+		}else{
+			return {message,chatId,participants:chat.participants.splice(1,1)}
+		}
+	}))
 
-	const chatsAndRecieverIds = {chats:preparedChats,receiversRoomIds}
-	
-	//generateSocketRooms(userId,receiversRoomIds);
-
-	return res.status(200).json(chatsAndRecieverIds);
+	return res.status(200).json(chatsWithLastMessage);
 }
 
+
+const getChatsFromSearch = async (req,res) => {
+
+	const {queryName,userId} = req.params;
+
+	const searchedUsers = await User.find({username:{ $regex: queryName, $options: 'i' }})
+	.select('_id username profile');
+
+
+	const usersForChat = await Promise.all(searchedUsers.map(async (user)=>{
+
+		const isExistingParticipants = await Chat.findOne({
+	        participants: {
+				$in: [
+					[userId, user._id],
+					[user._id, userId],
+				],
+	        },
+	    });
+
+		if(isExistingParticipants) {
+
+			const chatId = isExistingParticipants._id;
+
+			const message = await Message.findOne({chatId})
+			.sort({sendAt:-1})
+			.populate({
+				path:'sender',
+				model: User,
+				select: '_id username profile'
+			})
+
+			return {message,chatId,participants:[user]}
+		}
+
+		return {participants:[user]}
+	}))
+
+	return res.status(200).json(usersForChat);
+}
 
 const getMessagesByChatId = async (req,res) =>{
 
@@ -259,38 +271,27 @@ const getMessagesByChatId = async (req,res) =>{
 	// 	return res.status(401).json({message:'Unauthorized'});
 	// }
 
-	let chat = await Chat.findOne({
-		_id:chatId,
+	const chat = await Chat.findOne({_id:chatId})
+	.select('participants')
+	.populate({
+		path: 'participants',
+		model: User,
+		select: '_id username profile'
 	})
-	.populate([
-		{
-		    path: 'participants',
-		    model: User,
-		    select: '_id username profile'
-	  	},
-	  	{
-	  		path: 'messages.sender',
-	  		model: User,
-	  		select: '_id username profile'
-	  	},
-  	])
-  	.lean();
 
 	if(!chat){
 		return res.status(400).json({message:'Messages not found'});
 	}
 
-    // chat.messages.sort((a, b) => b.sendAt - a.sendAt); // working fine without this
+	if(req.params.userId === String(chat.participants[1]._id)){
+		chat.participants.splice(1,1)
+	}else{
+		chat.participants.splice(0,1)
+	}
 
-    if(req.params.userId !== String(chat.participants[0]._id)){
-    	chat.participants.splice(1,1);
+	const messages = await Message.find({chatId}).sort({sendAt:1});
 
-    } else {
-    	chat.participants.splice(0,1);
-    }
-
-
-	return res.status(200).json(chat);
+	return res.status(200).json({chat,messages});
 }
 
 const deleteMessagesFromChat = async (req,res) => {
@@ -348,4 +349,5 @@ module.exports = {
 	getMessagesByChatId,
 	deleteMessagesFromChat,
 	deleteChat,
+	getChatsFromSearch,
 }
