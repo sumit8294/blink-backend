@@ -131,6 +131,10 @@ const createOrUpdateChats = async (req,res) => {
 		        : new Chat({
 			            participants: [sender, receiver],
 			            createdAt: Date.now(),
+						lastSeen: {
+							sender: sender,
+							seen: false
+						}
 		          	});
 
 		    if (!isExistingParticipants) {
@@ -149,7 +153,13 @@ const createOrUpdateChats = async (req,res) => {
         
       		}else{
 				const result = await chat.save();
-				await Chat.updateOne({_id:chatId},{lastMessageAt:result.sendAt})
+				await Chat.updateOne({_id:chatId},{
+					lastMessageAt:result.sendAt,
+					lastSeen: {
+						sender: result.sender,
+						seen: false
+					}
+				})
 		
 			}
 
@@ -272,7 +282,7 @@ const getMessagesByChatId = async (req,res) =>{
 	// }
 
 	const chat = await Chat.findOne({_id:chatId})
-	.select('participants')
+	.select('participants lastSeen')
 	.populate({
 		path: 'participants',
 		model: User,

@@ -20,49 +20,77 @@ const io = new Server(server, {
 });
 
 io.on("connection", (socket) => {
+
     console.log(`User Connected: ${socket.id}`);
   
     socket.on("join_room", async (userId)=>{
-        console.log(`joined to  ${userId}`)
+
+        console.log(`user ${socket.id} joined to  ${userId}`)
+
         socket.join(userId)
         
         onlineUsers.set(userId)
+
         const userConnections = await fetchConnections(userId);
+
         userConnections.forEach((connection)=>{
+
             if(onlineUsers.has(connection)){
+
+                //tell each friend that this user is online
                 socket.to(connection).emit('getOnlineUser',userId)
+
+                //tell this user who is online currently
                 io.to(userId).emit('getOnlineUser',connection)
+
             }
         })
        
     })
 
+    socket.on('lastMessageSeened', async ({ chatId, sender }) => {
+
+        const result = await Chat.updateOne({_id:chatId},{lastSeen:{sender,seen:true}})
+
+        if(result) io.to(sender).emit('notifyMessageSeened',"message seened")
+
+    });
+
     socket.on("disconnect",async ()=>{
+
         console.log(`User Disconnected: ${socket.id}`)
 
         const userId = socket.handshake.query.userId
 
+        const userConnections = await fetchConnections(userId);
+
         onlineUsers.delete(userId)
 
-        const userConnections = await fetchConnections(userId);
         userConnections.forEach((connection)=>{
-            if(onlineUsers.has(connection)){
-                socket.to(connection).emit('getOfflineUser',userId)
-            }
+
+            if(onlineUsers.has(connection)) socket.to(connection).emit('getOfflineUser',userId) 
+
         })
         
     })
+
    
 });
 
 
+
 const fetchConnections = async (userId) =>{
+
     const userConnections = await Chat.find({participants: {$in:[userId]}}).select('participants')
 
     const filterConnections = userConnections.map((connection)=>{
+
         const users = connection.participants
+
         if(String(users[0]) === userId) return String(users[1])
+
         else return String(users[0])
+
     })
 
     return filterConnections;
@@ -70,20 +98,10 @@ const fetchConnections = async (userId) =>{
 
 const sendMessage = async (data) =>{
 
-    console.log("sended to room ", data.receiver)
-    io.to(data.receiver).emit("send_message",data)  
-}
+    io.to(data.receiver).emit("send_message",data)
 
-const generateSocketRooms = async (userId,receiversRoomIds) =>{
-
-	// io.on("connection", (socket) => {
-    //     receiversRoomIds.forEach((receiver_id)=>{
-    //         socket.join(String(receiver_id))
-    //     })
-    // })
-	
 }
 
 
 
-module.exports = {io,generateSocketRooms,sendMessage}
+module.exports = {io,sendMessage}

@@ -16,6 +16,11 @@ const chatSchema = new mongoose.Schema({
 		type: Date,
 		default: Date.now,
 	},
+	lastSeen: {
+        sender: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
+        seen: { type: Boolean, default: false }
+    }
+	
 
 })
 
