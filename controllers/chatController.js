@@ -216,9 +216,9 @@ const getChatsByUserId = async (req,res) => {
 		})
 		
 		if(userId === String(chat.participants[1]._id)){
-			return {message,chatId,participants:chat.participants.splice(0,1)}
+			return {message,chatId,participants:chat.participants.splice(0,1),seen:chat.lastSeen}
 		}else{
-			return {message,chatId,participants:chat.participants.splice(1,1)}
+			return {message,chatId,participants:chat.participants.splice(1,1),seen:chat.lastSeen}
 		}
 	}))
 
@@ -257,7 +257,7 @@ const getChatsFromSearch = async (req,res) => {
 				select: '_id username profile'
 			})
 
-			return {message,chatId,participants:[user]}
+			return {message,chatId,participants:[user],seen:isExistingParticipants.lastSeen}
 		}
 
 		return {participants:[user]}
