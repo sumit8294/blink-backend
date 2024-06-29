@@ -349,6 +349,15 @@ const deleteMessagesFromChat = async (req,res) => {
 	}
 }
 
+const getUnseenChatsCount = async (req,res) =>{
+
+	const {userId} = req.params;
+
+	const count = await Chat.count({participants: {$in:[userId]}, 'lastSeen.sender': {$ne:userId}, 'lastSeen.seen': false })
+
+	return res.status(200).json({count});
+}
+
 const deleteChat = async (req,res) =>{
 
 }
@@ -360,4 +369,5 @@ module.exports = {
 	deleteMessagesFromChat,
 	deleteChat,
 	getChatsFromSearch,
+	getUnseenChatsCount,
 }

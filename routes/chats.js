@@ -10,6 +10,7 @@ const router = express.Router()
 
 router.post('/',chatController.createOrUpdateChats);
 router.get('/:userId',chatController.getChatsByUserId);
+router.get('/unseenCount/:userId',chatController.getUnseenChatsCount);
 router.get('/search/:queryName/:userId',chatController.getChatsFromSearch);
 router.get('/:userId/:chatId',chatController.getMessagesByChatId);
 router.delete('/messages',chatController.deleteMessagesFromChat);
