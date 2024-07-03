@@ -39,6 +39,7 @@ app.use('/followers', require('./routes/followers'));
 app.use('/cloudinary', require('./routes/cloudinary'));
 app.use('/reactions',require('./routes/reactions'));
 app.use('/suggestions',require('./routes/userSuggestions'));
+app.use('/notifications',require('./routes/notifications'))
 
 app.all('*', (req, res) => {
     res.status(404)
