@@ -44,25 +44,62 @@ const createNotification = async (req,res) => {
 const getNotifications = async (req,res) => {
 
     const {userId} = req.params;
-
+    
     const result = await Notification.find(
         {
-            'receiver.userId':userId,
+            receiver:userId,
             expiresAt: {$gte:new Date()}
         }
     ).populate({
-        path: 'receiver sender',
+        path: 'sender',
         model: User,
         select: '_id username profile'
     })
-
 
     if(!result) return res.status(400).json({message:"No notifications found"})
 
     return res.status(200).json(result)
 }
 
+const getUnreadNotificationCount = async (req,res) => {
+
+    const {userId} = req.params;
+    
+    const result = await Notification.count(
+        {
+            receiver:userId,
+            read:false,
+            expiresAt: {$gte:new Date()}
+        }
+    )
+
+    if(!result) return res.status(400).json({message:"No notifications found"})
+
+    return res.status(200).json(result)
+}
+
+const setNotificationsRead = async (req,res) => {
+
+    const {userId} = req.params;
+    try {
+    const result = await Notification.updateMany(
+        {
+            receiver:userId,
+        },
+        { $set: {read:true} }
+    )
+    return res.status(200).json(result)
+
+    } catch (error) {
+        // Handle any errors that occur during the update operation
+        console.error('Error updating notifications:', error);
+        return res.status(500).json({ error: 'Failed to update notifications' });
+    }
+}
+
 module.exports = {
     createNotification,
-    getNotifications
+    getNotifications,
+    getUnreadNotificationCount,
+    setNotificationsRead
 }

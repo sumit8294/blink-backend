@@ -31,12 +31,13 @@ const MessageSchema = new mongoose.Schema({
         default: 'text'
 
     },
-    deletedBy: [
-        {
+    deletedBy:{ 
+        type: [{
             type: mongoose.Schema.Types.ObjectId,
             ref: 'User',
-        }
-    ]
+        }],
+        default: []
+    }
     
 })
 

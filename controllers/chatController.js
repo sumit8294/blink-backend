@@ -37,156 +37,84 @@ const createOrUpdateChats = async (req,res) => {
 				],
 	        },
 	    });
-
+		
 		if(contentType === 'post'){
+			
+			if(isExistingParticipants) {
+				await saveNewMessage( {chatId:isExistingParticipants._id, sender, content:content.imageUrl, contentId:content._id, contentType:typeToLowerCase } )
+			}else{
+				await createNewChat( {sender, receiver, content:content.imageUrl, contentId:content._id, contentType:typeToLowerCase} )
+			}
 
-			const chat = isExistingParticipants
-		        ? await Chat.updateOne(
-
-			            {participants: isExistingParticipants.participants},
-
-			            {
-			            	$push: {
-				                messages: {
-				                	sender,
-				                	content:content.imageUrl,
-				                	contentId:content._id,
-				                	contentType:typeToLowerCase,
-				                	deletedBy: [],
-				                },
-			            	},
-			            }
-		          	)
-		        : new Chat({
-			            participants: [sender, receiver],
-			            messages: [
-			              {
-			                sender,
-			                content:content.imageUrl,
-			                contentId:content._id,
-			                contentType:typeToLowerCase,
-			                deletedBy: [],
-			              },
-			            ],
-			            createdAt: Date.now(),
-		          	});
-
-		    if (!isExistingParticipants) {
-
-        		await chat.save();
-        
-      		}
+			await Post.updateOne({ _id: content._id }, { $inc: { 'reactions.shares': 1 } });
 	    }
 	    else if(contentType === 'reel'){
 
-	    	const chat = isExistingParticipants
-		        ? await Chat.updateOne(
+			if(isExistingParticipants) {
+				await saveNewMessage( {chatId:isExistingParticipants._id, sender, content:content.videoUrl, contentId:content._id, contentType:typeToLowerCase } )
+			}else{
+				await createNewChat( {sender, receiver, content:content.videoUrl, contentId:content._id, contentType:typeToLowerCase} )
+			}
 
-			            {participants: isExistingParticipants.participants},
-
-			            {
-			            	$push: {
-				                messages: {
-				                	sender,
-				                	content:content.videoUrl,
-				                	contentId:content._id,
-				                	contentType:typeToLowerCase,
-				                	deletedBy: [],
-				                },
-			            	},
-			            }
-		          	)
-		        : new Chat({
-			            participants: [sender, receiver],
-			            messages: [
-			              {
-			                sender,
-			                content:content.videoUrl,
-			                contentId:content._id,
-			                contentType:typeToLowerCase,
-			                deletedBy: [],
-			              },
-			            ],
-			            createdAt: Date.now(),
-		          	});
-
-		    if (!isExistingParticipants) {
-
-        		await chat.save();
-        
-      		}
+			await Reel.updateOne({ _id: content._id }, { $inc: { 'reactions.shares': 1 } });
 	    }
 	    else if(contentType === 'text'){
 
-	    	const chat = isExistingParticipants
-		        ? 
-					new Message({
-						chatId,
-						sender,
-						content:content,
-						contentType:typeToLowerCase,
-						deletedBy: [],	
-					})
-				
-		        : new Chat({
-			            participants: [sender, receiver],
-			            createdAt: Date.now(),
-						lastSeen: {
-							sender: sender,
-							seen: false
-						}
-		          	});
-
-		    if (!isExistingParticipants) {
-
-        		const result = await chat.save();
-				newChatId = result._id;
-				
-				const newMessage = new Message({
-					chatId: result._id,
-					sender,
-					content:content,
-					contentType:typeToLowerCase,
-					deletedBy: [],	
-				})
-				await newMessage.save();
-        
-      		}else{
-				const result = await chat.save();
-				await Chat.updateOne({_id:chatId},{
-					lastMessageAt:result.sendAt,
-					lastSeen: {
-						sender: result.sender,
-						seen: false
-					}
-				})
-		
+	    	if(isExistingParticipants) {
+				await saveNewMessage( {chatId, sender, content, contentType:typeToLowerCase } )
+			}else{
+				await createNewChat( {sender, receiver, content, contentType:typeToLowerCase} )
 			}
-
-
 	    }
 
 
-
-	    
-      	if(typeToLowerCase === 'post'){
-
-      		await Post.updateOne({ _id: content._id }, { $inc: { 'reactions.shares': 1 } });
-      	}
-      	if(typeToLowerCase === 'reel'){
-
-      		await Reel.updateOne({ _id: content._id }, { $inc: { 'reactions.shares': 1 } });
-      	}
-
 		await sendMessage(req.body) //socket.io functionality for sending message
+
 	    return res.status(200).json({message:'Message sent successfully',newChatId});
 
 	}
 	catch(error){
 		
-	   	return res.status(400).json({message:'Failed to send message'});
+	   	return res.status(400).json({message:error._message});
 	}
     
+}
+
+const saveNewMessage = async (messageContent) =>{
+
+	const message = new Message( {...messageContent} )
+
+	const result = await message.save();
+
+	await Chat.updateOne( {_id:messageContent.chatId} , { 
+		lastMessageAt:result.sendAt,
+		lastSeen: {
+			sender: result.sender,
+			seen: false
+		}
+	})
+}
+
+const createNewChat = async ({sender, receiver, content, contentType}) =>{
+
+	const chat = new Chat({
+		participants: [sender, receiver],
+		createdAt: Date.now(),
+		lastSeen: {
+			sender: sender,
+			seen: false
+		}
+	});
+
+	const result = await chat.save();
+	  
+	const newMessage = new Message({
+		  chatId: result._id,
+		  sender,
+		  content,
+		  contentType,	
+	})
+	await newMessage.save();
 }
  
 const getChatsByUserId = async (req,res) => {
@@ -299,7 +227,13 @@ const getMessagesByChatId = async (req,res) =>{
 		chat.participants.splice(0,1)
 	}
 
-	const messages = await Message.find({chatId}).sort({sendAt:1});
+	const messages = await Message.find({chatId})
+	.sort({sendAt:1})
+	.populate({
+		path: 'sender',
+		model: User,
+		select: '_id username profile'
+	});
 
 	return res.status(200).json({chat,messages});
 }
@@ -331,8 +265,6 @@ const deleteMessagesFromChat = async (req,res) => {
 		        ],
 	      	}
 		)
-
-		console.log(response);
 
 		if (response.modifiedCount > 0) {
 
