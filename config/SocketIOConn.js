@@ -102,6 +102,10 @@ const sendMessage = async (data) =>{
 
 }
 
+const sendNotification = async (data) =>{
 
+    io.to(data.receiver).emit("send_notification",data)
 
-module.exports = {io,sendMessage}
+}
+
+module.exports = {io,sendMessage,sendNotification}

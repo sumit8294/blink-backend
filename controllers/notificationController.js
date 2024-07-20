@@ -1,6 +1,8 @@
 const User = require('../models/User');
 const Notification = require('../models/reactionNotification');
 
+const {sendNotification} = require('../config/SocketIOConn')
+
 const createNotification = async (req,res) => {
 
     const {
@@ -20,6 +22,7 @@ const createNotification = async (req,res) => {
         content,
         comment: { content:comment },
         read: false,
+        createdAt: new Date(Date.now()),
         expiresAt: new Date(Date.now() + 72 * 60 * 60 * 1000)
     };
     
@@ -36,6 +39,8 @@ const createNotification = async (req,res) => {
     );
 
     if(!result) return res.status(400).json({message:"Failed to create Notification"})
+
+    await sendNotification(notification)
         
     return res.status(200).json({message:"Notification created successfully"});
 
@@ -55,6 +60,7 @@ const getNotifications = async (req,res) => {
         model: User,
         select: '_id username profile'
     })
+    .sort({createdAt: -1})
 
     if(!result) return res.status(400).json({message:"No notifications found"})
 
