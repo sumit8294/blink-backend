@@ -26,7 +26,7 @@ const createStory = async (req,res) => {
 		const newStory = new Story({
 			user:userId,
 			story:image,
-			expiresAt: new Date( Date.now() + 24 * 60 * 60 * 1000)
+			expiresAt: new Date( Date.now() + 30 * 24 * 60 * 60 * 1000)
 		})
 
 		await newStory.save();
