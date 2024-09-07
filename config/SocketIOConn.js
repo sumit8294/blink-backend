@@ -45,8 +45,24 @@ io.on("connection", (socket) => {
 
             }
         })
+
+        socket.on('videoCallOffer', async ({ offerTo, offerFrom, offer }) => {
+            console.log("Caal to", offerTo)
+            socket.to(offerTo).emit('videoCallOffer',{offerFrom, offer})
+        })
+    
+        socket.on('videoCallAnswer', async ({ answerTo, answer }) => {
+            console.log("answer to",answerTo)
+            socket.to(answerTo).emit('videoCallAnswer',{answerTo, answer})
+        })
+
+        socket.on('ice-candidate', ({candidate,to}) => {
+            socket.to(to).emit('ice-candidate',{candidate});
+        })
        
     })
+
+
 
     socket.on('lastMessageSeened', async ({ chatId, sender }) => {
 
