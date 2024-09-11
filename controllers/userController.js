@@ -77,6 +77,18 @@ const getUser = async (req,res) =>{
 	res.status(200).json(user);
 }
 
+const getUsersByName = async (req,res) => {
+	const {queryName} = req.params;
+
+	const users = await User.find({username: {$regex: queryName, $options : "i"}}).select('_id username profile')
+
+	if(!users){
+		return res.status(400).json({message:"no user found"})
+	}
+
+	return res.status(200).json(users)
+}
+
 
 const deleteUser = async (req,res) =>{
 	res.send({message:"not Added delete function yet"})
@@ -117,5 +129,6 @@ module.exports = {
 	getAllUsers,
 	deleteUser,
 	updateSettings,
-	getSettings
+	getSettings,
+	getUsersByName
 };

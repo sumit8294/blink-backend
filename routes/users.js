@@ -10,6 +10,7 @@ const router = express.Router()
 router.get('/settings/:userId',userController.getSettings);
 
 router.get('/all/:loggedUserId',userController.getAllUsers)
+router.get('/search/:queryName',userController.getUsersByName);
 router.get('/:userId/:loggedUserId',userController.getUser)
 router.post('/',userController.createUser)
 router.delete('/delete',userController.deleteUser)
