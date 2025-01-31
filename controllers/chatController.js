@@ -4,6 +4,7 @@ const Reel = require('../models/Reel');
 const Post = require('../models/Post');
 const Message = require('../models/Message');
 const {sendMessage} = require('../config/SocketIOConn')
+const {sendPushNotification} = require('../config/webPushConfig')
 
 
 //getChatsByUserId require to be add functionality for remove deleted messages
@@ -11,8 +12,17 @@ const {sendMessage} = require('../config/SocketIOConn')
 const createOrUpdateChats = async (req,res) => {
 
 	const { receiver, sender, content, contentType, chatId } = req.body;
-
+	let {username} = await User.findOne({_id:sender});
+	
+	let newChat;
+	
 	let newChatId = null; // use if new chat has created between user
+
+	let notification = {
+		title: "",
+		body: "",
+		url: ""
+	}
 
 	const typeToLowerCase = contentType && contentType.toLowerCase();
 
@@ -45,36 +55,65 @@ const createOrUpdateChats = async (req,res) => {
 			}else{
 				await createNewChat( {sender, receiver, content:content.imageUrl, contentId:content._id, contentType:typeToLowerCase} )
 			}
+			
+			notification = {
+				title:username,
+				body: 'Sent you a Post.',
+				chatId: newChat?._id || isExistingParticipants._id,
+				receiver,
+				url: 'messages'
+			}
 
 			await Post.updateOne({ _id: content._id }, { $inc: { 'reactions.shares': 1 } });
 	    }
 	    else if(contentType === 'reel'){
-
+			
 			if(isExistingParticipants) {
 				await saveNewMessage( {chatId:isExistingParticipants._id, sender, content:content.videoUrl, contentId:content._id, contentType:typeToLowerCase } )
 			}else{
-				await createNewChat( {sender, receiver, content:content.videoUrl, contentId:content._id, contentType:typeToLowerCase} )
+				newChat = await createNewChat( {sender, receiver, content:content.videoUrl, contentId:content._id, contentType:typeToLowerCase} )
+			}
+
+			notification = {
+				title:username,
+				body: 'Sent you a Reel.',
+				chatId: newChat?._id || isExistingParticipants._id,
+				receiver,
+				url: 'messages'
 			}
 
 			await Reel.updateOne({ _id: content._id }, { $inc: { 'reactions.shares': 1 } });
+
 	    }
 	    else if(contentType === 'text'){
 
 	    	if(isExistingParticipants) {
 				await saveNewMessage( {chatId, sender, content, contentType:typeToLowerCase } )
 			}else{
-				await createNewChat( {sender, receiver, content, contentType:typeToLowerCase} )
+				newChat = await createNewChat( {sender, receiver, content, contentType:typeToLowerCase} )
+			}
+
+			notification = {
+				title:username,
+				body: content,
+				chatId: newChat?._id || chatId,
+				receiver,
+				url: 'messages'
 			}
 	    }
 
-
+		console.log(receiver)
 		await sendMessage(req.body) //socket.io functionality for sending message
+
+		
+		// Note- here we are not storing the notification in database 
+		await sendPushNotification(notification) //sending notification with web-push
 
 	    return res.status(200).json({message:'Message sent successfully',newChatId});
 
 	}
 	catch(error){
-		
+		console.log(error)
 	   	return res.status(400).json({message:error._message});
 	}
     

@@ -12,6 +12,7 @@ const rateLimit = require('express-rate-limit');
 
 const {server,app} = require('./config/serverConfig');
 
+
 const PORT = 5000;
 
 connectDB();
@@ -29,6 +30,11 @@ app.use(express.json());
 app.use(cookieParser());
 app.use(cors(corsOptions))
 
+/*for webPush*/
+const bodyParser = require("body-parser");
+app.use(bodyParser.json());
+/*for webPush*/
+
 app.use('/users', require('./routes/users'));
 app.use('/auth', require('./routes/auth'));
 app.use('/reels', require('./routes/reels'));
@@ -40,6 +46,7 @@ app.use('/cloudinary', require('./routes/cloudinary'));
 app.use('/reactions',require('./routes/reactions'));
 app.use('/suggestions',require('./routes/userSuggestions'));
 app.use('/notifications',require('./routes/notifications'))
+
 
 app.all('*', (req, res) => {
     res.status(404)

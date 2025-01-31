@@ -1,10 +1,11 @@
 const User = require('../models/User');
 const Notification = require('../models/reactionNotification');
+const PushSubscription = require('../models/PushSubscription');
 
-const {sendNotification} = require('../config/SocketIOConn')
+const {sendNotification} = require('../config/SocketIOConn');
+const { sendPushNotification } = require('../config/webPushConfig');
 
 const createNotification = async (req,res) => {
-
     const {
         sender,
         receiver,
@@ -14,6 +15,7 @@ const createNotification = async (req,res) => {
     let content = null;
     if(type === 'comment') comment = req.body.comment
     if(type !== 'follow') content = req.body.content 
+    let {username} = await User.findOne({_id:sender});
 
     const notification = {
         sender,
@@ -41,6 +43,21 @@ const createNotification = async (req,res) => {
     if(!result) return res.status(400).json({message:"Failed to create Notification"})
 
     await sendNotification(notification)
+
+    let pushNotification = {
+        title:username,
+        body: type === 'like' 
+        ? `${username} liked your ${type}` 
+        : type === 'comment' 
+        ? `${username} commented on your ${type}` 
+        : type === 'follow' 
+        ? `${username} started following you` 
+        : 'You have a new notification',
+        receiver,
+        url: 'notifications'
+    }
+
+    await sendPushNotification(pushNotification)
         
     return res.status(200).json({message:"Notification created successfully"});
 
@@ -103,9 +120,47 @@ const setNotificationsRead = async (req,res) => {
     }
 }
 
+const pushSubscription = async (req, res) => {
+    const { userId, subscription } = req.body;
+  
+    try {
+      // Save the subscription in the database
+      const newSubscription = new PushSubscription({
+        userId, // The user who is subscribing
+        endpoint: subscription.endpoint,
+        keys: {
+          p256dh: subscription.keys.p256dh,
+          auth: subscription.keys.auth,
+        },
+      });
+  
+      await newSubscription.save();
+    
+      res.status(201).json({ message: 'Subscription saved successfully!' });
+    } catch (error) {
+      console.error('Error saving subscription:', error);
+      res.status(500).json({ error: 'Failed to save subscription' });
+    }
+};
+
+const checkSubscription = async (req,res) => {
+    try{
+        const subscription  = await PushSubscription.find({userId:req.params.userId});
+        const subscribed = subscription.length > 0;
+
+        res.status(201).json({ subscribed });
+    }catch{
+        console.error('Error getting subscription status:', error);
+        res.status(500).json({ error: 'Failed to get subscription status' });
+    }
+}
+
+
 module.exports = {
     createNotification,
     getNotifications,
     getUnreadNotificationCount,
-    setNotificationsRead
+    setNotificationsRead,
+    pushSubscription,
+    checkSubscription,
 }
