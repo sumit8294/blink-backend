@@ -12,7 +12,7 @@ const {sendPushNotification} = require('../config/webPushConfig')
 const createOrUpdateChats = async (req,res) => {
 
 	const { receiver, sender, content, contentType, chatId } = req.body;
-	let {username} = await User.findOne({_id:sender});
+	let {username,profile} = await User.findOne({_id:sender});
 	
 	let newChat;
 	
@@ -21,7 +21,8 @@ const createOrUpdateChats = async (req,res) => {
 	let notification = {
 		title: "",
 		body: "",
-		url: ""
+		url: "",
+		profile:""
 	}
 
 	const typeToLowerCase = contentType && contentType.toLowerCase();
@@ -58,6 +59,7 @@ const createOrUpdateChats = async (req,res) => {
 			
 			notification = {
 				title:username,
+				profile,
 				body: 'Sent you a Post.',
 				chatId: newChat?._id || isExistingParticipants._id,
 				receiver,
@@ -76,6 +78,7 @@ const createOrUpdateChats = async (req,res) => {
 
 			notification = {
 				title:username,
+				profile,
 				body: 'Sent you a Reel.',
 				chatId: newChat?._id || isExistingParticipants._id,
 				receiver,
@@ -95,6 +98,7 @@ const createOrUpdateChats = async (req,res) => {
 
 			notification = {
 				title:username,
+				profile,
 				body: content,
 				chatId: newChat?._id || chatId,
 				receiver,

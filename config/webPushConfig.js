@@ -15,11 +15,11 @@ webPush.setVapidDetails(
   );
 
 
-  const sendPushNotification = async ({ title, body, url, receiver }) => {
+  const sendPushNotification = async ({ title, body, url, receiver, profile }) => {
     const notificationPayload = {
         title,
         body,
-        icon: "logo192.png",
+        icon: profile,
         badge: "logo72.png",
         url,
     };
