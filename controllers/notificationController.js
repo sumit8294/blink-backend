@@ -124,19 +124,30 @@ const pushSubscription = async (req, res) => {
     const { userId, subscription } = req.body;
   
     try {
-      // Save the subscription in the database
-      const newSubscription = new PushSubscription({
-        userId, // The user who is subscribing
-        endpoint: subscription.endpoint,
-        keys: {
-          p256dh: subscription.keys.p256dh,
-          auth: subscription.keys.auth,
-        },
-      });
-  
-      await newSubscription.save();
-    
-      res.status(201).json({ message: 'Subscription saved successfully!' });
+
+        const existingSubscription = await PushSubscription.findOne({endpoint:subscription.endpoint});
+
+        if(existingSubscription){
+            existingSubscription.keys = {
+                p256dh : subscription.keys.p256dh,
+                auth : subscription.keys.auth,
+            }
+            await existingSubscription.save();
+            return res.json({message:"Subscription updated"});
+
+        }else{
+            const newSubscription = new PushSubscription({
+                keys:{
+                    p256dh : subscription.keys.p256dh,
+                    auth : subscription.keys.auth
+                },
+                endpoint: subscription.endpoint,
+                userId, 
+            })
+            await newSubscription.save();
+            return res.json({message: "Subscription added"});
+        }
+
     } catch (error) {
       console.error('Error saving subscription:', error);
       res.status(500).json({ error: 'Failed to save subscription' });

@@ -106,13 +106,15 @@ const createOrUpdateChats = async (req,res) => {
 			}
 	    }
 
-		console.log(receiver)
+		
 		await sendMessage(req.body) //socket.io functionality for sending message
 
-		
-		// Note- here we are not storing the notification in database 
-		await sendPushNotification(notification) //sending notification with web-push
-
+		try{
+			// Note- here we are not storing the notification in database 
+			await sendPushNotification(notification) //sending notification with web-push
+		}catch(err){
+			console.log(err);
+		}
 	    return res.status(200).json({message:'Message sent successfully',newChatId});
 
 	}

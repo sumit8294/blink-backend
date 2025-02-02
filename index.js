@@ -19,7 +19,7 @@ connectDB();
 
 const limiter = rateLimit({
     windowMs: 1000, // 1 second
-    max: 10,
+    max: 20,
     handler: (req, res, next) => {
         console.log('Rate limit exceeded!! increase limit in index.js');
     } 
